@@ -34,4 +34,4 @@ def decode(data):
 # print(decode(str1))
 
 
-decode_name(bytes.fromhex('7e983ea65daab32bec1272821102'))
+decode_name(bytes.fromhex('7051'))

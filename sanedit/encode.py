@@ -143,6 +143,41 @@ class encode:
                 "positions": [118,4 ],
                 "column_widths": 70,
                 "trl": "卒年"
+            },
+            "ty": {
+                "positions": [164,2 ],
+                "column_widths": 70,
+                "trl": "统御"
+            },
+            "wl": {
+                "positions": [166, 2],
+                "column_widths": 70,
+                "trl": "武力"
+            },
+            "zl": {
+                "positions": [168, 2],
+                "column_widths": 70,
+                "trl": "智力"
+            },
+            "zz": {
+                "positions": [170, 2],
+                "column_widths": 70,
+                "trl": "政治"
+            },
+            "ml": {
+                "positions": [172, 2],
+                "column_widths": 70,
+                "trl": "魅力"
+            },
+            "qy": {
+                "positions": [474, 2],
+                "column_widths": 70,
+                "trl": "情义"
+            },
+            "qc": {
+                "positions": [460, 2],
+                "column_widths": 70,
+                "trl": "奇才"
             }
             # 你可以在这里添加更多的字段
         }
@@ -170,11 +205,18 @@ class encode:
                     if len(v)<=2:
                         value = format(int(v) + 87, '02x')+'1b'
                     else:                        
-                        value =  hex(int(v))[2:].zfill(4)
-                    ss=0    
+                        value =  hex(int(v))[2:].zfill(4)                       
+                elif field in ['ty','wl','zz','zl','ml']:                    
+                    value =  hex(int(v))[2:]
+                elif field == 'qy':                
+                    # value =  hex(int(v))[2:]
+                    value =   f"{int(v):02X}"
+                    ss=0
+                elif field == 'qc':   
+                    dict_r = {self.qicai[x]:x for x in self.qicai}
+                    value =dict_r[v] 
                 else:
-                    value = warrior_data.get(field, '')
-                
+                    value = warrior_data.get(field, '')                
                 # 确保value的长度与预期的长度匹配
                 if len(value) < length:
                     value += '0' * (length - len(value))
@@ -202,7 +244,7 @@ class encode:
                 encoded_data = self.encode_warrior(warrior, original_warrior_hex)
                 newlength = len(encoded_data)
                 # 确保编码后的数据长度与原始数据长度相同
-                if len(encoded_data) != original_length :  
+                if len(encoded_data) != original_length  and len(encoded_data)< 3000:  
                     raise ValueError(f"修改后的武将数据长度与原始数据长度不匹配：{warrior['firstname']}")
 
                 # 将修改后的数据写回文件
@@ -224,7 +266,9 @@ class encode:
                 warrior_data = {'original_position': warrior_start}
                 
                 # 查找下一个武将数据块的开始位置或文件末尾
-                next_warrior_start = hex_string.find('0903', warrior_start+6)-4  # 6是因为 '0b0903' 是6个字符
+                # next_warrior_start = hex_string.find('0903', warrior_start+6)-4  # 6是因为 '0b0903' 是6个字符
+                next_warrior_start = hex_string.find('0b0903', warrior_start+6) - 6
+
                 if next_warrior_start == -1:
                     next_warrior_start = len(hex_string)
                 
@@ -252,6 +296,12 @@ class encode:
                                 value = int(value_hex[:2], 16)-87
                             else:
                                 value = int(value_hex,16)
+                        elif field in ['ty','wl','zz','zl','ml']:                            
+                            value = int(value_hex,16)
+                        elif field =='qc':
+                            value = self.qicai[value_hex]
+                        elif field =='qy':
+                            value = int(value_hex,16)
                         else:
                             value = value_hex  # 其他字段可能需要不同的处理方式
                         warrior_data[field] = value

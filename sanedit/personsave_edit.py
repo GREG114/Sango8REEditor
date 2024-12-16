@@ -9,6 +9,18 @@ path = os.path.join(os.environ['USERPROFILE'], 'Documents',  'KoeiTecmo', 'SAN8R
 
 def create_editable_treeview(frame, columns, data):
     tree = ttk.Treeview(frame, columns=columns, show="headings", selectmode="extended")
+        # 创建垂直和水平滚动条
+    v_scrollbar = ttk.Scrollbar(frame, orient=tk.VERTICAL, command=tree.yview)
+    h_scrollbar = ttk.Scrollbar(frame, orient=tk.HORIZONTAL, command=tree.xview)
+    tree.configure(yscrollcommand=v_scrollbar.set, xscrollcommand=h_scrollbar.set)
+    # 放置Treeview和滚动条
+    tree.grid(row=0, column=0, sticky="nsew")
+    v_scrollbar.grid(row=0, column=1, sticky="ns")
+    h_scrollbar.grid(row=1, column=0, sticky="ew")
+    # 让框架能够适应窗口大小
+    frame.grid_rowconfigure(0, weight=1)
+    frame.grid_columnconfigure(0, weight=1)
+
     for col in columns:
         tree.heading(col, text=col)
         tree.column(col, width=100)
@@ -94,6 +106,7 @@ def open_save_editor():
     save_editor.title("存档武将修改")
     save_editor.geometry("1152x832")  # 设置窗口大小
     
+
     frame = ttk.Frame(save_editor, padding="10")
     frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
     
@@ -108,7 +121,7 @@ def open_save_editor():
     tree.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
 
     # 保存按钮
-    def save_data():
+    def save_data(tree):
         # 从Treeview中获取所有修改后的数据
         modified_warriors = []
         for item in tree.get_children():
@@ -125,9 +138,13 @@ def open_save_editor():
         # 保存数据到文件
         ec.save_to_bin_file(modified_warriors, path)
         print("所有更改已保存")
+        save_editor.destroy()
     
-    ttk.Button(frame, text="保存修改", command=save_data).grid(row=1, column=0, pady=10)
-    
+    # ttk.Button(frame, text="保存修改", command=save_data).grid(row=1, column=0, pady=10)    
+    # 添加保存按钮
+    save_button = ttk.Button(frame, text="保存", command=lambda: save_data(tree))
+    save_button.grid(row=2, column=0, columnspan=2, pady=10)
+
     # 确保窗口可以调整大小
     save_editor.rowconfigure(0, weight=1)
     save_editor.columnconfigure(0, weight=1)
