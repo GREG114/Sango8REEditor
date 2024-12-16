@@ -5,7 +5,7 @@ from encode import encode
 
 ec = encode()
 path = r'C:\Users\greg_\Documents\KoeiTecmo\SAN8R\SAVE_DATA\edit_personSC.bin'
-path = os.path.join(os.environ['USERPROFILE'],  'KoeiTecmo', 'SAN8R', 'SAVE_DATA','edit_personSC.bin')
+path = os.path.join(os.environ['USERPROFILE'], 'Documents',  'KoeiTecmo', 'SAN8R', 'SAVE_DATA','edit_personSC.bin')
 
 def create_editable_treeview(frame, columns, data):
     tree = ttk.Treeview(frame, columns=columns, show="headings", selectmode="extended")

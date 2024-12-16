@@ -7,7 +7,7 @@ from tkinter import font
 from personsave_edit import open_save_editor
 # 定义bin文件目录
 
-directory = os.path.join(os.environ['USERPROFILE'],  'KoeiTecmo', 'SAN8R', 'PERSONDATA','SC')
+directory = os.path.join(os.environ['USERPROFILE'], 'Documents' ,'KoeiTecmo', 'SAN8R', 'PERSONDATA','SC')
 
 # 用于保存文件路径和表格行号的映射
 file_path_to_row = {}
