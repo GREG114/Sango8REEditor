@@ -1,3 +1,4 @@
+import binascii,re
 class encode:
     
     def __init__(self):        
@@ -34,8 +35,6 @@ class encode:
             '1c': '名门望族',
             '1d': '恶逆无道'
         }
-
-
         self.propeties={
          
         "number": {
@@ -108,6 +107,135 @@ class encode:
             "trl": "奇才"
         }
         }
+
+        self.properties_savedata = {
+            "idx": {
+                "positions": [0, 4],
+                "column_widths": 100,
+                "trl": "编号"
+            },
+            "surname": {
+                "positions": [8, 8],
+                "column_widths": 100,
+                "trl": "姓"
+            },
+            "firstname": {
+                "positions": [52, 8],
+                "column_widths": 100,
+                "trl": "名"
+            },
+            "headshot": {
+                "positions": [108, 4],
+                "column_widths": 100,
+                "trl": "立绘编号"
+            },
+            "born": {
+                "positions": [114, 4],
+                "column_widths": 70,
+                "trl": "生年"
+            },
+            "died": {
+                "positions": [118,4 ],
+                "column_widths": 70,
+                "trl": "卒年"
+            }
+            # 你可以在这里添加更多的字段
+        }
+    
+    
+    
+    def encode_warrior(self, warrior_data, original_warrior_hex):
+        # original_warrior_hex 是读取文件时得到的原始十六进制字符串
+        modified_hex = original_warrior_hex  # 开始时使用原始数据
+        
+        for field, props in self.properties_savedata.items():
+            if 'positions' in props:
+                start, length = props['positions']
+                if field in ['firstname', 'surname']:                   
+                    v = warrior_data.get(field, '')
+                    value = self.encode(v)
+                elif field in ['born', 'died']:
+                    value = self.format_year(int(warrior_data.get(field, '')))
+                else:
+                    value = warrior_data.get(field, '')
+                
+                # 确保value的长度与预期的长度匹配
+                if len(value) < length:
+                    value += '0' * (length - len(value))
+                elif len(value) > length:
+                    value = value[:length]
+                
+                # 替换修改后的数据
+                modified_hex = modified_hex[:start] + value + modified_hex[start+length:]
+        
+        return modified_hex
+        
+        
+    def save_to_bin_file(self, warriors, path):
+        with open(path, 'r+b') as file:  # 以读写模式打开文件
+            file_content = file.read()  # 读取整个文件内容
+            
+            for warrior in warriors:
+                original_position = warrior['original_position']
+                original_length = warrior['original_length']
+                
+                # 提取原始的武将数据块
+                original_warrior_hex = file_content[original_position // 2:(original_position + original_length) // 2].hex()
+                
+                # 编码修改后的武将数据
+                encoded_data = self.encode_warrior(warrior, original_warrior_hex)
+                newlength = len(encoded_data)
+                # 确保编码后的数据长度与原始数据长度相同
+                if len(encoded_data) != original_length :  
+                    raise ValueError(f"修改后的武将数据长度与原始数据长度不匹配：{warrior['firstname']}")
+
+                # 将修改后的数据写回文件
+                file.seek(original_position // 2)
+                file.write(binascii.unhexlify(encoded_data))
+
+
+    def decode_bin_file(self, path):
+        with open(path, 'rb') as file:
+            hex_string = binascii.hexlify(file.read()).decode('utf-8')
+        
+        warriors = []
+        i = 0
+        while i < len(hex_string):
+            match = re.search(r'([0-9a-f]{2})0b0903', hex_string[i:])
+            if match:
+                warrior_start = i + match.start()
+                warrior_data = {'original_position': warrior_start}
+                
+                # 查找下一个武将数据块的开始位置或文件末尾
+                next_warrior_start = hex_string.find('0b0903', warrior_start + 6)  # 6是因为 '0b0903' 是6个字符
+                if next_warrior_start == -1:
+                    next_warrior_start = len(hex_string)
+                
+                # 计算当前武将数据块的长度
+                warrior_length = next_warrior_start - warrior_start
+                warrior_data['original_length'] = warrior_length
+                
+                for field, props in self.properties_savedata.items():
+                    if 'positions' in props:
+                        start = props['positions'][0]
+                        end = start + props['positions'][1]
+                        value_hex = hex_string[warrior_start+start:warrior_start+end]
+                        if field in ['firstname', 'surname']:
+                            value = bytes.fromhex(value_hex).decode('utf-16le')
+                        elif field in ['born', 'died']:
+                            value = self.parse_year(value_hex)
+                        else:
+                            value = value_hex  # 其他字段可能需要不同的处理方式
+                        warrior_data[field] = value
+                
+                warriors.append(warrior_data)
+                i = next_warrior_start
+            else:
+                break
+        
+        return warriors
+
+
 
     def decode(self,data):
         try:

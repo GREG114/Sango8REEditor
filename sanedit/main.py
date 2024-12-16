@@ -4,6 +4,7 @@ import os, binascii
 from encode import encode
 ec = encode()
 from tkinter import font
+from personsave_edit import open_save_editor
 # 定义bin文件目录
 directory = r"C:\Users\greg_\Documents\KoeiTecmo\SAN8R\PERSONDATA\SC"
 
@@ -14,7 +15,17 @@ def create_window():
     # 创建主窗口
     root = tk.Tk()
     # 设置窗口标题
-    root.title("三国志导出武将修改器")    
+    root.title("三国志导出武将修改器") 
+
+    # 创建菜单栏
+    menubar = tk.Menu(root)
+    edit_menu = tk.Menu(menubar, tearoff=0)
+    edit_menu.add_command(label="存档武将修改", command=open_save_editor)
+    menubar.add_cascade(label="编辑", menu=edit_menu)
+    root.config(menu=menubar)
+
+
+
     # 设置窗口大小
     root.geometry("960x640")    
     # 创建一个框架，用于放置表格
