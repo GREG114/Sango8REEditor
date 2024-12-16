@@ -129,6 +129,11 @@ class encode:
                 "column_widths": 100,
                 "trl": "立绘编号"
             },
+            "sex": {
+                "positions": [112, 2],
+                "column_widths": 50,
+                "trl": "性别"
+            },
             "born": {
                 "positions": [114, 4],
                 "column_widths": 70,
@@ -151,11 +156,22 @@ class encode:
         for field, props in self.properties_savedata.items():
             if 'positions' in props:
                 start, length = props['positions']
-                if field in ['firstname', 'surname']:                   
-                    v = warrior_data.get(field, '')
+                v = warrior_data.get(field, '')
+                if field in ['firstname', 'surname']:   
                     value = self.encode(v)
                 elif field in ['born', 'died']:
                     value = self.format_year(int(warrior_data.get(field, '')))
+                elif field in ['sex']:                    
+                    if v=='男':
+                        value = '00'
+                    else:
+                        value = '01'
+                elif field == 'headshot':
+                    if len(v)<=2:
+                        value = format(int(v) + 87, '02x')+'1b'
+                    else:                        
+                        value =  hex(int(v))[2:].zfill(4)
+                    ss=0    
                 else:
                     value = warrior_data.get(field, '')
                 
@@ -202,12 +218,13 @@ class encode:
         i = 0
         while i < len(hex_string):
             match = re.search(r'([0-9a-f]{2})0b0903', hex_string[i:])
+            hexidx=hex_string[i:]
             if match:
                 warrior_start = i + match.start()
                 warrior_data = {'original_position': warrior_start}
                 
                 # 查找下一个武将数据块的开始位置或文件末尾
-                next_warrior_start = hex_string.find('0b0903', warrior_start + 6)  # 6是因为 '0b0903' 是6个字符
+                next_warrior_start = hex_string.find('0903', warrior_start+6)-4  # 6是因为 '0b0903' 是6个字符
                 if next_warrior_start == -1:
                     next_warrior_start = len(hex_string)
                 
@@ -224,6 +241,17 @@ class encode:
                             value = bytes.fromhex(value_hex).decode('utf-16le')
                         elif field in ['born', 'died']:
                             value = self.parse_year(value_hex)
+                        elif field in ['sex']:
+                            if value_hex =='00':
+                                value = '男'
+                            else: 
+                                value = '女'
+                        elif field == 'headshot':
+                            if '1b' in value_hex:
+                                warrior_data['headself']=True
+                                value = int(value_hex[:2], 16)-87
+                            else:
+                                value = int(value_hex,16)
                         else:
                             value = value_hex  # 其他字段可能需要不同的处理方式
                         warrior_data[field] = value

@@ -5,8 +5,8 @@ import difflib
 chunk_size = 16
 # 遍历目录中的 .bin 文件
 filename =r'C:\Users\greg_\Documents\KoeiTecmo\SAN8R\SAVE_DATA\edit_personSC.bin'
-path = r'D:\data\Code\dbg'
-name = filename.split('\\')[len(filename.split('\\'))-1]
+path = r'D:\data\Code\dbg\eg'
+name = filename.split('\\')[len(filename.split('\\'))-1]+'.txt'
 print(name)
 print(os.path.join(path,name))
 target =os.path.join(path,name)

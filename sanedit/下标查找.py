@@ -1,9 +1,8 @@
-path =r'C:\Data\Project\self_sango\Sango8REEditor\存档武将分析.md'
+path =r'D:\data\Code\dbg\eg\edit_personSC.bin.txt'
 
 with open(path,mode='r') as f:
     xxx = f.read().replace('\n','')
-
-    idx = xxx.index('651b')
+    idx = xxx.index('00aa')
     print(idx)
     print(xxx[108:112])
 
