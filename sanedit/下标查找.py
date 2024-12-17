@@ -1,4 +1,4 @@
-path =r'D:\data\Code\dbg\eg\edit_personSC.bin.txt'
+path =r'.\eg\edit_personSC.bin.txt'
 
 with open(path,mode='r') as f:
     xxx = f.read().replace('\n','')
