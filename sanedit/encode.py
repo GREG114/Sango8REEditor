@@ -124,6 +124,11 @@ class encode:
                 "column_widths": 100,
                 "trl": "名"
             },
+            "word": {
+                "positions": [96, 8],
+                "column_widths": 100,
+                "trl": "字"
+            },
             "headshot": {
                 "positions": [108, 4],
                 "column_widths": 100,
@@ -144,6 +149,32 @@ class encode:
                 "column_widths": 70,
                 "trl": "卒年"
             },
+            "father":{
+                "positions": [126,4],
+                "column_widths": 70,
+                "trl": "父亲"                
+            },
+            "mother":{
+                "positions": [130,4],
+                "column_widths": 70,
+                "trl": "母亲"                
+            },
+            "wife1":{
+                "positions": [134,4],
+                "column_widths": 70,
+                "trl": "老婆1"                
+            },
+            "wife2":{
+                "positions": [138,4],
+                "column_widths": 70,
+                "trl": "老婆2"                
+            },
+            "wife3":{
+                "positions": [142,4],
+                "column_widths": 70,
+                "trl": "老婆3"                
+            }
+            ,
             "ty": {
                 "positions": [164,2 ],
                 "column_widths": 70,
@@ -178,6 +209,11 @@ class encode:
                 "positions": [460, 2],
                 "column_widths": 70,
                 "trl": "奇才"
+            },
+            "js": {
+                "positions": [490, 1010],
+                "column_widths": 1400,
+                "trl": "介绍"
             }
             # 你可以在这里添加更多的字段
         }
@@ -192,8 +228,11 @@ class encode:
             if 'positions' in props:
                 start, length = props['positions']
                 v = warrior_data.get(field, '')
-                if field in ['firstname', 'surname']:   
-                    value = self.encode(v)
+                if field in ['firstname', 'surname','word','js']:   
+                    value = self.encode(v,True)
+                    if field=='js':
+                        value = value.ljust(1010, '0')
+                        pass
                 elif field in ['born', 'died']:
                     value = self.format_year(int(warrior_data.get(field, '')))
                 elif field in ['sex']:                    
@@ -225,7 +264,8 @@ class encode:
                 
                 # 替换修改后的数据
                 modified_hex = modified_hex[:start] + value + modified_hex[start+length:]
-        
+        if warrior_data['idx'] == 'b90b':
+            modified_hex = modified_hex[:178] + 'bd0b01' + modified_hex[184:]
         return modified_hex
         
         
@@ -250,8 +290,35 @@ class encode:
                 # 将修改后的数据写回文件
                 file.seek(original_position // 2)
                 file.write(binascii.unhexlify(encoded_data))
-
-
+    def introduce_decode(self,value_hex):
+        try:
+            # 转换为字节序列
+            bytes_data = bytes.fromhex(value_hex)
+            # print(f"Input hex: {value_hex} (length: {len(bytes_data)} bytes)")
+            
+            valid_length = 0
+            # 按2字节步长尝试解码
+            for i in range(0, len(bytes_data), 2):
+                if i + 2 > len(bytes_data):  # 确保有足够字节
+                    # print(f"Byte {i}-{i+1}: Incomplete (less than 2 bytes)")
+                    break
+                try:
+                    current_bytes = bytes_data[i:i+2]
+                    decoded_char = current_bytes.decode('utf-16le')
+                    # print(f"Byte {i}-{i+1}: {current_bytes.hex()} -> Decoded: '{decoded_char}'")
+                    valid_length = i + 2
+                except UnicodeDecodeError:
+                    # print(f"Byte {i}-{i+1}: {current_bytes.hex()} -> Decode failed")
+                    break
+            
+            # 返回有效部分的十六进制字符串
+            result = bytes_data[:valid_length].hex()
+            # print(f"Valid length: {valid_length} bytes")
+            # print(f"Output hex: {result} (length: {len(result)} hex chars)")
+            return result
+        except ValueError as e:
+            print(f"Error: Invalid hex string '{value_hex}' ({e})")
+            return value_hex
     def decode_bin_file(self, path):
         with open(path, 'rb') as file:
             hex_string = binascii.hexlify(file.read()).decode('utf-8')
@@ -259,15 +326,17 @@ class encode:
         warriors = []
         i = 0
         while i < len(hex_string):
-            match = re.search(r'([0-9a-f]{2})0b0903', hex_string[i:])
+            # 20250722 从0903改成0a03 ，游戏更新后这里变了
+            match = re.search(r'([0-9a-f]{4})0a03', hex_string[i:])
+            key = hex_string[2:8]
             hexidx=hex_string[i:]
             if match:
                 warrior_start = i + match.start()
                 warrior_data = {'original_position': warrior_start}
                 
                 # 查找下一个武将数据块的开始位置或文件末尾
-                # next_warrior_start = hex_string.find('0903', warrior_start+6)-4  # 6是因为 '0b0903' 是6个字符
-                next_warrior_start = hex_string.find('0b0903', warrior_start+6) - 6
+                # next_warrior_start = hex_string.find('0a03', warrior_start+6)-4  # 6是因为 '0b0a03' 是6个字符
+                next_warrior_start = hex_string.find(key, warrior_start+6) - 6
 
                 if next_warrior_start == -1:
                     next_warrior_start = len(hex_string)
@@ -275,13 +344,15 @@ class encode:
                 # 计算当前武将数据块的长度
                 warrior_length = next_warrior_start - warrior_start
                 warrior_data['original_length'] = warrior_length
-                
+                warrior_s=0
                 for field, props in self.properties_savedata.items():
                     if 'positions' in props:
                         start = props['positions'][0]
+                        if warrior_s==0:warrior_s = start
                         end = start + props['positions'][1]
                         value_hex = hex_string[warrior_start+start:warrior_start+end]
-                        if field in ['firstname', 'surname']:
+                        if field in ['firstname', 'surname','word','js']:
+                            value_hex = self.introduce_decode(value_hex)
                             value = bytes.fromhex(value_hex).decode('utf-16le')
                         elif field in ['born', 'died']:
                             value = self.parse_year(value_hex)
@@ -305,14 +376,24 @@ class encode:
                         else:
                             value = value_hex  # 其他字段可能需要不同的处理方式
                         warrior_data[field] = value
-                
+                test=hex_string[warrior_start:warrior_start+2294]  
+              
+                warrior_name = warrior_data['idx'] 
+                # self.exportFile(test,warrior_name)        
                 warriors.append(warrior_data)
                 i = next_warrior_start
             else:
-                break
-        
+                break        
         return warriors
 
+    def wrap_string(self,s, width=32):
+        return '\n'.join(s[i:i+width] for i in range(0, len(s), width))
+    def exportFile(self,data,idx):
+        outpath = rf'warriors\{idx}.txt'
+        with open(outpath,'w',encoding='utf-8') as f:
+            dataformated= self.wrap_string(data)
+            f.write(dataformated)
+            f.close()
 
 
     def decode(self,data):
@@ -324,7 +405,7 @@ class encode:
         except UnicodeDecodeError:
             print(f"Cannot decode as {self.encoding}")
             
-    def encode(self, data):
+    def encode(self, data,utf16=False):
         try:
             # 首先将字符串转换为utf-16le编码的字节
             encoded_bytes = data.encode('utf-16le')
@@ -336,6 +417,8 @@ class encode:
             elif len(encoded_bytes) % 2 != 0:
                 encoded_bytes += b'\x00'
             
+            if utf16:
+                if data == '00000000': return data
             # 去除前导空格并重新编码
             encoded_data = encoded_bytes.decode('utf-16le').lstrip(' ').encode('utf-16le')
             

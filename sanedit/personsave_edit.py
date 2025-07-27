@@ -7,6 +7,9 @@ ec = encode()
 path = r'C:\Users\greg_\Documents\KoeiTecmo\SAN8R\SAVE_DATA\edit_personSC.bin'
 path = os.path.join(os.environ['USERPROFILE'], 'Documents',  'KoeiTecmo', 'SAN8R', 'SAVE_DATA','edit_personSC.bin')
 
+if not os.path.exists(path):
+    raise FileNotFoundError(f"路径不存在：{path}")
+warriors={}
 def create_editable_treeview(frame, columns, data):
     tree = ttk.Treeview(frame, columns=columns, show="headings", selectmode="extended")
         # 创建垂直和水平滚动条
@@ -23,7 +26,10 @@ def create_editable_treeview(frame, columns, data):
 
     for col in columns:
         tree.heading(col, text=col)
-        tree.column(col, width=100)
+        width=50
+        if col=='js':
+            width = 800
+        tree.column(col, width=width)
     
     for item in data:
         tree.insert("", "end", values=tuple(item[col] for col in columns))
@@ -61,10 +67,18 @@ def create_editable_treeview(frame, columns, data):
 
     context_menu = tk.Menu(tree, tearoff=0)
     context_menu.add_command(label="批量修改", command=lambda: open_batch_edit_window(tree))
+    context_menu.add_command(label="导出武将源码", command=lambda: test(tree))
+
 
     tree.bind("<Button-3>", show_context_menu)
     
     return tree
+
+def test(tree):
+    selected_items = tree.selection()
+    for item in selected_items:
+        ss=0
+    ss=0
 
 def open_batch_edit_window(tree):
     selected_items = tree.selection()
@@ -74,7 +88,7 @@ def open_batch_edit_window(tree):
 
     batch_edit_window = tk.Toplevel()
     batch_edit_window.title("批量修改武将属性")
-    batch_edit_window.geometry("400x300")
+    batch_edit_window.geometry("400x900")
 
     frame = ttk.Frame(batch_edit_window, padding="10")
     frame.pack(fill=tk.BOTH, expand=True)

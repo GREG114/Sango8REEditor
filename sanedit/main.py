@@ -5,10 +5,13 @@ from encode import encode
 ec = encode()
 from tkinter import font
 from personsave_edit import open_save_editor
+# pyinstaller --onefile --hidden-import=encode --hidden-import=personsave_edit main.py
 # 定义bin文件目录
 
 directory = os.path.join(os.environ['USERPROFILE'], 'Documents' ,'KoeiTecmo', 'SAN8R', 'PERSONDATA','SC')
-
+if not os.path.exists(directory):
+    raise FileNotFoundError(f"路径不存在：{directory}")
+print(directory)
 # 用于保存文件路径和表格行号的映射
 file_path_to_row = {}
 

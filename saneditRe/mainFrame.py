@@ -51,6 +51,22 @@ def open_batch_edit_window(tree):
     ttk.Button(frame, text="确定", command=apply_batch_edit).grid(row=len(columns), column=0, columnspan=2, pady=10)
 
     frame.columnconfigure(1, weight=1)
+
+def open_skill_edit_window(tree):
+    selected_items = tree.selection()
+    if not selected_items:
+        messagebox.showwarning("警告", "请先选择要批量修改的武将")
+        return
+    batch_edit_window = tk.Toplevel()
+    batch_edit_window.title("修改武将技能")
+    batch_edit_window.geometry("800x600")  # 调整窗口大小
+    frame = ttk.Frame(batch_edit_window, padding="10")
+    frame.pack(fill=tk.BOTH, expand=True)
+    frame.columnconfigure(1, weight=1)
+
+
+
+
 def create_editable_treeview(frame, columns, data):
     tree = ttk.Treeview(frame, columns=columns, show="headings", selectmode="extended")
         # 创建垂直和水平滚动条
@@ -72,7 +88,7 @@ def create_editable_treeview(frame, columns, data):
     
     for item in data:
         tree.insert("", "end", values=tuple(item[col] for col in columns))
-    
+        ss=0
     # 双击事件处理函数
     def on_double_click(event):
         item = tree.selection()[0]
@@ -106,6 +122,7 @@ def create_editable_treeview(frame, columns, data):
 
     context_menu = tk.Menu(tree, tearoff=0)
     context_menu.add_command(label="批量修改", command=lambda: open_batch_edit_window(tree))
+    context_menu.add_command(label="技能修改", command=lambda: open_skill_edit_window(tree))
 
     tree.bind("<Button-3>", show_context_menu)
     
