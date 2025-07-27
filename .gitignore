@@ -6,3 +6,8 @@
 /sanedit/dist/
 /sanedit/__pycache__/
 /dbg
+/sanedit/dbg
+/sanedit/data
+/sanedit/dist
+/sanedit/warriors
+/sanedit/ui
