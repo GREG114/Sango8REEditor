@@ -319,7 +319,7 @@ class encode:
         except ValueError as e:
             print(f"Error: Invalid hex string '{value_hex}' ({e})")
             return value_hex
-    def decode_bin_file(self, path):
+    def decode_bin_file_old(self, path):
         with open(path, 'rb') as file:
             hex_string = binascii.hexlify(file.read()).decode('utf-8')
         
@@ -385,6 +385,61 @@ class encode:
             else:
                 break        
         return warriors
+
+
+    def warrior_read(self,warrior_start,hex_string):
+        warrior_data= {'original_position': warrior_start}      
+        warrior_data['original_length']=2294   
+        warrior_str = hex_string[warrior_start:warrior_start+2294]
+        for field, props in self.properties_savedata.items():
+            if 'positions' in props:
+                start = props['positions'][0]             
+                end = start + props['positions'][1]
+                value_hex = warrior_str[start:end]
+                if field in ['firstname', 'surname','word','js']:
+                    value_hex = self.introduce_decode(value_hex)
+                    value = bytes.fromhex(value_hex).decode('utf-16le')
+                elif field in ['born', 'died']:
+                    value = self.parse_year(value_hex)
+                elif field in ['sex']:
+                    if value_hex =='00':
+                        value = '男'
+                    else: 
+                        value = '女'
+                elif field == 'headshot':
+                    if '1b' in value_hex:
+                        warrior_data['headself']=True
+                        value = int(value_hex[:2], 16)-87
+                    else:
+                        value = int(value_hex,16)
+                elif field in ['ty','wl','zz','zl','ml']:                            
+                    value = int(value_hex,16)
+                elif field =='qc':
+                    value = self.qicai[value_hex]
+                elif field =='qy':
+                    value = int(value_hex,16)
+                else:
+                    value = value_hex  # 其他字段可能需要不同的处理方式
+                warrior_data[field] = value
+              
+        return warrior_data
+
+
+    def decode_bin_file(self, path):
+        with open(path, 'rb') as file:
+            hex_string = binascii.hexlify(file.read()).decode('utf-8')
+        warriors = []
+        idx=0
+        lenth =len(hex_string)/2294
+        for i in range(0,int(lenth)):
+            warrior_start = i*2294
+            try:
+                warrior_data=self.warrior_read(warrior_start,hex_string)        
+                warriors.append(warrior_data)
+            except Exception as ex:
+                print(ex)
+        return warriors
+
 
     def wrap_string(self,s, width=32):
         return '\n'.join(s[i:i+width] for i in range(0, len(s), width))
