@@ -27,9 +27,6 @@ def create_window():
     edit_menu.add_command(label="存档武将修改", command=open_save_editor)
     menubar.add_cascade(label="编辑", menu=edit_menu)
     root.config(menu=menubar)
-
-
-
     # 设置窗口大小
     root.geometry("960x640")    
     # 创建一个框架，用于放置表格
