@@ -182,6 +182,11 @@ class encode:
                 "column_widths": 70,
                 "trl": "统御"
             },
+            "xt": {
+                "positions": [158, 4],
+                "column_widths": 70,
+                "trl": "意气相投"
+            },
             "wl": {
                 "positions": [166, 2],
                 "column_widths": 70,
@@ -455,8 +460,12 @@ class encode:
                     value = int(value_hex,16)
                 else:
                     value = value_hex  # 其他字段可能需要不同的处理方式
+                     
                 warrior_data[field] = value
+        # self.exportFile(warrior_str,warrior_data['idx'])  
         warrior_data['source']=warrior_str
+
+
         return warrior_data
 
 
