@@ -1,4 +1,4 @@
-import binascii,re
+import binascii
 class encode:
     
     def __init__(self):    
@@ -37,79 +37,6 @@ class encode:
             '1d': '名门望族',
             '1e': '恶逆无道'
         }
-        self.propeties={
-         
-        "number": {
-            "column_widths": 50,
-            "trl": "编号"
-        }   ,
-        "surname": {
-            "positions": [48, 8],
-            "column_widths": 100,
-            "trl": "姓"
-        },
-        "firstname": {
-            "positions": [92, 8],
-            "column_widths": 100,
-            "trl": "名"
-        },
-        "midname": {
-            "positions": [136, 8],
-            "column_widths": 100,
-            "trl": "字"
-        },
-        "sex": {
-            "positions": [152, 2],
-            "column_widths": 50,
-            "trl": "性别"
-        },
-        "born": {
-            "positions": [154, 4],
-            "column_widths": 70,
-            "trl": "生年"
-        },
-        "died": {
-            "positions": [158, 4],
-            "column_widths": 70,
-            "trl": "卒年"
-        },
-        "ty": {
-            "positions": [204, 2],
-            "column_widths": 70,
-            "trl": "统御"
-        },
-        "wl": {
-            "positions": [206, 2],
-            "column_widths": 70,
-            "trl": "武力"
-        },
-        "zl": {
-            "positions": [208, 2],
-            "column_widths": 70,
-            "trl": "智力"
-        },
-        "zz": {
-            "positions": [210, 2],
-            "column_widths": 70,
-            "trl": "政治"
-        },
-        "ml": {
-            "positions": [212, 2],
-            "column_widths": 70,
-            "trl": "魅力"
-        },
-        "qy": {
-            "positions": [514, 2],
-            "column_widths": 70,
-            "trl": "情义"
-        },
-        "qc": {
-            "positions": [500, 2],
-            "column_widths": 70,
-            "trl": "奇才"
-        }
-        }
-
         self.properties_savedata = {
             "idx": {
                 "positions": [0, 4],
@@ -256,8 +183,7 @@ class encode:
                         value =  hex(int(v))[2:].zfill(4)                       
                 elif field in ['ty','wl','zz','zl','ml']:                    
                     value =  hex(int(v))[2:]
-                elif field == 'qy':                
-                    # value =  hex(int(v))[2:]
+                elif field == 'qy':               
                     value =   f"{int(v):02X}"
                 elif field == 'qc':   
                     dict_r = {self.qicai[x]:x for x in self.qicai}
@@ -290,18 +216,12 @@ class encode:
         next_id = format(num, '04x')
         # 变回反序
         return next_id[2:4] + next_id[0:2]
-    def save_to_bin_file(self, warriors, path):
-        # warrior_dbg = warriors[0]
-        # encoded_data = self.encode_warrior(warrior_dbg)
-        # currentidx = 'b80b'        
+    def save_to_bin_file(self, path):
         with open(path, 'r+b') as file:  # 以读写模式打开文件
             file_content = ''  # 读取整个文件内容            
-            for warrior in warriors:
-                # idx=self.get_next_id(currentidx)  
-                encoded_data = self.encode_warrior(warrior)        
-                # encoded_data = idx + encoded_data[4:]
+            for warrior in self.warriors:
+                encoded_data = self.encode_warrior(warrior)      
                 file_content+=encoded_data
-                # currentidx=idx
             length = len(file_content)/2294
             while( length<150):
                 file_content+= self.defaultw
@@ -309,24 +229,6 @@ class encode:
             file.write(bytes.fromhex(file_content))
             file.close()
 
-        # with open(path, 'r+b') as file:  # 以读写模式打开文件
-        #     file_content = file.read()  # 读取整个文件内容            
-        #     for warrior in warriors:
-        #         original_position = warrior['original_position']
-        #         original_length = warrior['original_length']                
-        #         # 提取原始的武将数据块
-        #         original_warrior_hex = file_content[original_position // 2:(original_position + original_length) // 2].hex()
-                
-        #         # 编码修改后的武将数据
-        #         encoded_data = self.encode_warrior(warrior, original_warrior_hex)
-        #         newlength = len(encoded_data)
-        #         # 确保编码后的数据长度与原始数据长度相同
-        #         if len(encoded_data) != original_length  and len(encoded_data)< 3000:  
-        #             raise ValueError(f"修改后的武将数据长度与原始数据长度不匹配：{warrior['firstname']}")
-
-        #         # 将修改后的数据写回文件
-        #         file.seek(original_position // 2)
-        #         file.write(binascii.unhexlify(encoded_data))
     def introduce_decode(self,value_hex):
         try:
             # 转换为字节序列
@@ -356,74 +258,6 @@ class encode:
         except ValueError as e:
             print(f"Error: Invalid hex string '{value_hex}' ({e})")
             return value_hex
-    def decode_bin_file_old(self, path):
-        with open(path, 'rb') as file:
-            hex_string = binascii.hexlify(file.read()).decode('utf-8')
-        
-        warriors = []
-        i = 0
-        while i < len(hex_string):
-            # 20250722 从0903改成0a03 ，游戏更新后这里变了
-            match = re.search(r'([0-9a-f]{4})0a03', hex_string[i:])
-            key = hex_string[2:8]
-            hexidx=hex_string[i:]
-            if match:
-                warrior_start = i + match.start()
-                warrior_data = {'original_position': warrior_start}
-                
-                # 查找下一个武将数据块的开始位置或文件末尾
-                # next_warrior_start = hex_string.find('0a03', warrior_start+6)-4  # 6是因为 '0b0a03' 是6个字符
-                next_warrior_start = hex_string.find(key, warrior_start+6) - 6
-
-                if next_warrior_start == -1:
-                    next_warrior_start = len(hex_string)
-                
-                # 计算当前武将数据块的长度
-                warrior_length = next_warrior_start - warrior_start
-                warrior_data['original_length'] = warrior_length
-                warrior_s=0
-                for field, props in self.properties_savedata.items():
-                    if 'positions' in props:
-                        start = props['positions'][0]
-                        if warrior_s==0:warrior_s = start
-                        end = start + props['positions'][1]
-                        value_hex = hex_string[warrior_start+start:warrior_start+end]
-                        if field in ['firstname', 'surname','word','js']:
-                            value_hex = self.introduce_decode(value_hex)
-                            value = bytes.fromhex(value_hex).decode('utf-16le')
-                        elif field in ['born', 'died']:
-                            value = self.parse_year(value_hex)
-                        elif field in ['sex']:
-                            if value_hex =='00':
-                                value = '男'
-                            else: 
-                                value = '女'
-                        elif field == 'headshot':
-                            if '1b' in value_hex:
-                                warrior_data['headself']=True
-                                value = int(value_hex[:2], 16)-87
-                            else:
-                                value = int(value_hex,16)
-                        elif field in ['ty','wl','zz','zl','ml']:                            
-                            value = int(value_hex,16)
-                        elif field =='qc':
-                            value = self.qicai[value_hex]
-                        elif field =='qy':
-                            value = int(value_hex,16)
-                        else:
-                            value = value_hex  # 其他字段可能需要不同的处理方式
-                        warrior_data[field] = value
-                test=hex_string[warrior_start:warrior_start+2294]  
-              
-                warrior_name = warrior_data['idx'] 
-                # self.exportFile(test,warrior_name)        
-                warriors.append(warrior_data)
-                i = next_warrior_start
-            else:
-                break        
-        return warriors
-
-
     def warrior_read(self,warrior_start,hex_string):
         warrior_data= {'original_position': warrior_start}      
         warrior_data['original_length']=2294   
@@ -479,10 +313,10 @@ class encode:
             try:
                 warrior_data=self.warrior_read(warrior_start,hex_string) 
                 if warrior_data!=None:       
-                    warriors.append(warrior_data)
+                    self.warriors.append(warrior_data)
             except Exception as ex:
                 print(ex)
-        return warriors
+        return True
 
 
     def wrap_string(self,s, width=32):
@@ -598,14 +432,6 @@ class encode:
             return 0<res<=15
         except ValueError:
             return False
-    def get_field(self, hex_data, field):
-        start, length = self.propeties[field]['positions']
-        return hex_data[start:start+length]
-
-    def set_field(self, hex_data, field, value):
-        # print(f"{field}修改为:{value},位置:{self.propeties[field]['positions']}")
-        start, length = self.propeties[field]['positions']
-        return hex_data[:start] + value + hex_data[start+length:]
 
     def format_year(self, year):
         hex_r = format(year, '04x')

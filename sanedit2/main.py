@@ -12,11 +12,12 @@ if not os.path.exists(path):
     raise FileNotFoundError(f"路径不存在：{path}")
 
 ec = encode()
-warriors = None
+warriors = ec.warriors
 
 def warriorsload(tree):
     global warriors
-    warriors = ec.decode_bin_file(path)
+    if ec.decode_bin_file(path):
+        warriors = ec.warriors
     # 清空现有表格
     for item in tree.get_children():
         tree.delete(item)
@@ -131,7 +132,7 @@ def create_main_window():
 
 
     # 保存按钮
-    save_button = ttk.Button(root, text="保存到文件", command=lambda: ec.save_to_bin_file(warriors, path))
+    save_button = ttk.Button(root, text="保存到文件", command=lambda: ec.save_to_bin_file( path))
     save_button.pack(pady=5)
     # 编辑功能
     def on_double_click(event):
@@ -170,6 +171,8 @@ def create_main_window():
         selected_items = tree.selection()
         if selected_items:
             context_menu.post(event.x_root, event.y_root)
+
+
     context_menu = tk.Menu(tree, tearoff=0)
     context_menu.add_command(label="批量修改", command=lambda: open_batch_edit_window(tree))
     tree.bind("<Double-1>", on_double_click)
