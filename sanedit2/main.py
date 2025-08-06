@@ -10,13 +10,15 @@ import uuid
 path = os.path.join(os.environ['USERPROFILE'], 'Documents', 'KoeiTecmo', 'SAN8R', 'SAVE_DATA', 'edit_personSC.bin')
 if not os.path.exists(path):
     raise FileNotFoundError(f"路径不存在：{path}")
-
+tree=None
 ec = encode()
 warriors = ec.warriors
 
-def warriorsload(tree):
+
+def warriorsload():
     global warriors
-    if ec.decode_bin_file(path):
+    global tree
+    if ec.decode_bin_file(path) :
         warriors = ec.warriors
     # 清空现有表格
     for item in tree.get_children():
@@ -24,7 +26,12 @@ def warriorsload(tree):
     # 重新插入数据
     for warrior in warriors:
         values = [warrior.get(col, "") for col in list(ec.properties_savedata.keys())]
-        tree.insert("", "end", values=values, iid=str(uuid.uuid4()))
+        # 确保 idx 存在且有效
+        idx = warrior.get("idx", "")
+        if not idx:  # 如果 idx 为空或无效，跳过或分配默认值
+            print(f"警告：武将缺少有效 idx，跳过插入：{warrior}")
+            continue
+        tree.insert("", "end", values=values, iid=str(uuid.uuid4()), tags=(str(idx),))
 
 def open_batch_edit_window(tree):
     selected_items = tree.selection()
@@ -77,18 +84,32 @@ def open_batch_edit_window(tree):
 
     ttk.Button(batch_edit_window, text="应用修改", command=apply_changes).grid(row=len(columns), column=0, columnspan=2, pady=10)
 
+def delete_warrior(tree):
+    selected = tree.selection()
+    if not selected:
+        messagebox.showwarning("警告", "请先选择一个武将！")
+        return
+    for iid in selected:
+        # 获取选中行的 idx（从 tags 中）
+        s=tree.item(iid, "tags")
+        idx = tree.item(iid, "tags")[0]
+        # 从 warriors 列表中移除对应武将
+        global warriors
+        warriors = [w for w in warriors if w["idx"] != idx]
+        # 从 Treeview 删除
+        tree.delete(iid)
+    messagebox.showinfo("成功", "已删除选中的武将！")
+def save():
+    ec.warriors=warriors
+    # 检查保存时的武将数量，现在重载不会山列表，导致每次重载，前端列表都翻倍    
+    ec.save_to_bin_file(path)
 def create_main_window():
+    global tree
     root = tk.Tk()
     root.title("三国志8RE自建武将修改器")
     root.geometry("1280x640")
-
     # 创建菜单栏
     menubar = tk.Menu(root)
-    file_menu = tk.Menu(menubar, tearoff=0)
-    file_menu.add_command(label="重新加载", command=lambda: warriorsload(tree))
-    menubar.add_cascade(label="文件", menu=file_menu)
-    root.config(menu=menubar)
-
     # 创建表格框架，设置内边距以略小于root
     tree_frame = ttk.Frame(root)
     tree_frame.pack(fill="both", expand=True, padx=10, pady=(10, 50))  # 底部留空间给按钮
@@ -105,7 +126,14 @@ def create_main_window():
         tree.column(name, width=width, anchor="center")
 
     # 初始加载数据
-    warriorsload(tree)
+    warriorsload()
+
+    file_menu = tk.Menu(menubar, tearoff=0)
+    file_menu.add_command(label="重新加载", command=lambda: warriorsload())
+    menubar.add_cascade(label="文件", menu=file_menu)
+    root.config(menu=menubar)
+
+
 
     # 表格滚动条
     scrollbar = ttk.Scrollbar(tree_frame, orient="vertical", command=tree.yview)
@@ -132,7 +160,7 @@ def create_main_window():
 
 
     # 保存按钮
-    save_button = ttk.Button(root, text="保存到文件", command=lambda: ec.save_to_bin_file( path))
+    save_button = ttk.Button(root, text="保存到文件", command=lambda: save())
     save_button.pack(pady=5)
     # 编辑功能
     def on_double_click(event):
@@ -175,8 +203,9 @@ def create_main_window():
 
     context_menu = tk.Menu(tree, tearoff=0)
     context_menu.add_command(label="批量修改", command=lambda: open_batch_edit_window(tree))
+    context_menu.add_command(label="删除武将", command=lambda: delete_warrior(tree))
     tree.bind("<Double-1>", on_double_click)
-    tree.bind("<Button-3>", show_context_menu)
+    tree.bind("<Button-3>", show_context_menu)    
     return root
 
 if __name__ == "__main__":

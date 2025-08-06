@@ -306,7 +306,7 @@ class encode:
     def decode_bin_file(self, path):
         with open(path, 'rb') as file:
             hex_string = binascii.hexlify(file.read()).decode('utf-8')
-        warriors = []
+        self.warriors = []
         lenth =len(hex_string)/2294
         for i in range(0,int(lenth)):
             warrior_start = i*2294
