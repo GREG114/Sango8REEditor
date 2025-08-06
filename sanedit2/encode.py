@@ -37,6 +37,12 @@ class encode:
             '1d': '名门望族',
             '1e': '恶逆无道'
         }
+        self.skill={
+                "positions": [298, 18],
+                "column_widths": 70,
+                "trl": "技能"
+            }
+      
         self.properties_savedata = {
             "idx": {
                 "positions": [0, 4],
@@ -143,7 +149,13 @@ class encode:
                 "positions": [460, 2],
                 "column_widths": 70,
                 "trl": "奇才"
-            },
+            }
+            # ,"skill":{                
+            #     "positions": [298, 36],
+            #     "column_widths": 440,
+            #     "trl": "技能"
+            # }
+            ,
             "js": {
                 "positions": [490, 1010],
                 "column_widths": 1400,
@@ -153,6 +165,69 @@ class encode:
         }
     
     
+    #技能相关
+    def reorder_skills(self,skills_string):
+    # 确保字符串长度是32
+        if len(skills_string) != 32:
+            raise ValueError("输入字符串长度必须为32")
+        
+        # 将字符串每4个字符分组
+        groups = [skills_string[i:i+4] for i in range(0, len(skills_string), 4)]
+        
+        # 对每个组进行倒序操作
+        reversed_groups = [group[::-1] for group in groups]
+        
+        # 将倒序后的组拼接成一个字符串
+        reordered_string = ''.join(reversed_groups)
+        
+        return reordered_string
+    def hex_to_quaternary_战法(self,hex_string):
+        # 转换十六进制字符串为十进制整数
+        decimal_num = int(hex_string, 16)    
+        if decimal_num == 0:
+            # 如果输入是全0，则返回与输入长度相对应的全0四进制字符串
+            return '0' * (len(hex_string) * 2)    
+        quaternary = ""
+        while decimal_num > 0:
+            decimal_num, remainder = divmod(decimal_num, 4)
+            quaternary = str(remainder) + quaternary    
+        # 确保返回的四进制字符串长度为十六进制输入长度的两倍
+        required_length = len(hex_string) * 2
+        quaternary = quaternary.zfill(required_length)  
+
+        if(len(quaternary)%4 !=0):
+            raise ValueError("长度不是4的倍数")
+        # 每四个字符分组
+        gps = [quaternary[i:i+4] for i in range(0,len(quaternary),4)]
+        # 每组倒叙
+        rgps = [gp[::-1] for gp in gps]
+        #拼接
+        result = ''.join(rgps)  
+            
+        return result[:35]
+    
+    def parse_skills_to_dict(self,ordered_skills):
+        # 定义技能名称列表，按照图片从左到右，从上到下的顺序
+        skill_names = [
+            '刚击', '乱击', '扰乱', '猛冲', '枪阵',
+            '连击', '突击', '急袭', '骑射', '园阵',
+            '齐射', '乱射', '火矢', '远射', '箭雨',
+            '火箭', '混战', '连环', '突贯', '爆船',
+            '烈火', '激流', '落石', '伏击', '相残',
+            '奋起', '鼓舞', '谩骂', '治疗', '天启',
+            '风变', '天变', '妖术', '幻术', '落雷'
+        ]        
+        # 检查输入字符串长度是否为32
+        if len(ordered_skills) != 35:
+            raise ValueError("输入字符串长度必须为35")        
+        # 创建一个字典来保存技能和等级
+        skills_dict = {}        
+        # 遍历技能名称和对应的等级
+        for i, skill_name in enumerate(skill_names):
+            skills_dict[skill_name]=ordered_skills[i]        
+        return skills_dict
+
+
     
     def encode_warrior(self, warrior_data, original_warrior_hex=''):
         # original_warrior_hex 是读取文件时得到的原始十六进制字符串
@@ -296,9 +371,15 @@ class encode:
                     value = value_hex  # 其他字段可能需要不同的处理方式
                      
                 warrior_data[field] = value
+        skill_str_16=warrior_str[self.skill["positions"][0]:self.skill["positions"][0]+self.skill["positions"][1]]        
+        skill_str=self.hex_to_quaternary_战法(skill_str_16) 
         # self.exportFile(warrior_str,warrior_data['idx'])  
         warrior_data['source']=warrior_str
-
+        try:
+            skilldict = self.parse_skills_to_dict(skill_str)
+            warrior_data['战法']=skilldict          
+        except Exception as ex:
+            pass
 
         return warrior_data
 

@@ -118,13 +118,11 @@ def create_main_window():
     columns = list(ec.properties_savedata.keys())
     column_names = [ec.properties_savedata[col]["trl"] for col in columns]
     tree = ttk.Treeview(tree_frame, columns=column_names, show="headings")
-    
     # 设置表头并自动调整列宽
     for col, name in zip(columns, column_names):
         tree.heading(name, text=name)
         width = ec.properties_savedata[col].get("column_widths", 100)
         tree.column(name, width=width, anchor="center")
-
     # 初始加载数据
     warriorsload()
 
