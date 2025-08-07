@@ -176,11 +176,11 @@ def show_warrior_skills(tree):
     # 计算每列的技能数量
     skills_per_column = (len(skill_names) + 3) // 4  # 向上取整确保所有技能都能显示
     
-    # 分四列显示技能
+    # 分四列显示技能（行优先）
     for i, skill_name in enumerate(skill_names):
-        # 计算当前技能应该放在第几列和第几行
-        col_index = (i // skills_per_column) * 2  # 每列包含标签和输入框，所以乘以2
-        row_index = (i % skills_per_column) + 1   # 从第2行开始（第1行是标题）
+        # 计算当前技能应该放在第几行和第几列
+        row_index = (i // 4) + 1  # 每行4个技能，从第2行开始
+        col_index = (i % 4) * 2   # 每列包含标签和输入框，按技能索引取模4
         
         # 技能名称标签
         ttk.Label(scrollable_frame, text=skill_name).grid(row=row_index, column=col_index, sticky="w", padx=(10, 0), pady=2)
