@@ -42,6 +42,15 @@ class encode:
                 "column_widths": 70,
                 "trl": "技能"
             }
+        self.skill_names = [
+            '刚击', '乱击', '扰乱', '猛冲', '枪阵',
+            '连击', '突击', '急袭', '骑射', '园阵',
+            '齐射', '乱射', '火矢', '远射', '箭雨',
+            '火箭', '混战', '连环', '突贯', '爆船',
+            '烈火', '激流', '落石', '伏击', '相残',
+            '奋起', '鼓舞', '谩骂', '治疗', '天启',
+            '风变', '天变', '妖术', '幻术', '落雷'
+        ]  
       
         self.properties_savedata = {
             "idx": {
@@ -202,21 +211,36 @@ class encode:
         # 每组倒叙
         rgps = [gp[::-1] for gp in gps]
         #拼接
-        result = ''.join(rgps)  
-            
+        result = ''.join(rgps)              
         return result[:35]
-    
+            
+    def quaternary_to_hex_战法(self, quaternary):
+        if len(quaternary) != 35:
+            raise ValueError("四进制字符串长度必须为35")
+        
+        # 补齐到36位（在末尾补0）
+        quaternary = quaternary + '0'
+        
+        # 按每4位分组（共9组）
+        groups = [quaternary[i:i+4] for i in range(0, len(quaternary), 4)]
+        
+        # 每组倒序
+        reversed_groups = [group[::-1] for group in groups]
+        
+        # 拼接
+        full_quaternary = ''.join(reversed_groups)
+        
+        # 转换为十六进制
+        decimal = 0
+        for i, digit in enumerate(full_quaternary[::-1]):
+            decimal += int(digit) * (4 ** i)
+        
+        # 转十六进制，补齐18位
+        hex_result = format(decimal, 'x').zfill(18)
+        return hex_result[:18]
     def parse_skills_to_dict(self,ordered_skills):
         # 定义技能名称列表，按照图片从左到右，从上到下的顺序
-        skill_names = [
-            '刚击', '乱击', '扰乱', '猛冲', '枪阵',
-            '连击', '突击', '急袭', '骑射', '园阵',
-            '齐射', '乱射', '火矢', '远射', '箭雨',
-            '火箭', '混战', '连环', '突贯', '爆船',
-            '烈火', '激流', '落石', '伏击', '相残',
-            '奋起', '鼓舞', '谩骂', '治疗', '天启',
-            '风变', '天变', '妖术', '幻术', '落雷'
-        ]        
+        skill_names =self.skill_names
         # 检查输入字符串长度是否为32
         if len(ordered_skills) != 35:
             raise ValueError("输入字符串长度必须为35")        
@@ -227,8 +251,11 @@ class encode:
             skills_dict[skill_name]=ordered_skills[i]        
         return skills_dict
 
-
-    
+    def dict_to_skill_string(self, skills_dict):
+        if len(skills_dict) != 35:
+            raise ValueError("技能字典必须包含35个技能")
+        return ''.join(skills_dict.get(name, '0') for name in self.skill_names)
+        
     def encode_warrior(self, warrior_data, original_warrior_hex=''):
         # original_warrior_hex 是读取文件时得到的原始十六进制字符串
         modified_hex = warrior_data['source']       

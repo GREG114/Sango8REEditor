@@ -103,6 +103,130 @@ def save():
     ec.warriors=warriors
     # 检查保存时的武将数量，现在重载不会山列表，导致每次重载，前端列表都翻倍    
     ec.save_to_bin_file(path)
+
+def show_warrior_skills(tree):
+    selected_items = tree.selection()
+    if not selected_items:
+        messagebox.showwarning("警告", "请先选择一个武将！")
+        return
+    
+    # 获取第一个选中的武将
+    first_selected = selected_items[0]
+    values = tree.item(first_selected, "values")
+    
+    # 通过idx找到对应的武将数据
+    idx = None
+    for warrior in warriors:
+        if str(warrior.get("idx", "")) == str(values[0]):
+            idx = warrior.get("idx")
+            break
+    
+    if not idx:
+        messagebox.showerror("错误", "无法找到选中的武将数据")
+        return
+    
+    warrior = next((w for w in warriors if w["idx"] == idx), None)
+    if not warrior:
+        messagebox.showerror("错误", "无法找到选中的武将数据")
+        return
+    
+    # 获取原始技能字符串（用于调试）
+    warrior_source = warrior.get('source', '')
+    start_pos = ec.skill["positions"][0]
+    end_pos = start_pos + ec.skill["positions"][1]
+    original_skill_hex = warrior_source[start_pos:end_pos]
+    
+    print(f"调试信息 - 武将: {warrior.get('surname', '')}{warrior.get('firstname', '')}")
+    print(f"原始技能十六进制字符串: {original_skill_hex}")
+    
+    # 创建技能显示窗口
+    skills_window = tk.Toplevel()
+    skills_window.title(f"武将技能 - {warrior.get('surname', '')}{warrior.get('firstname', '')}")
+    skills_window.geometry("600x500")  # 调整窗口大小以适应四列布局
+    
+    # 获取技能数据（已转换为字典）
+    skill_dict = warrior.get('战法', {})
+    
+    # 创建主框架
+    main_frame = ttk.Frame(skills_window)
+    main_frame.pack(fill="both", expand=True, padx=10, pady=10)
+    
+    # 创建可滚动的框架来显示技能
+    canvas = tk.Canvas(main_frame)
+    scrollbar = ttk.Scrollbar(main_frame, orient="vertical", command=canvas.yview)
+    scrollable_frame = ttk.Frame(canvas)
+    
+    scrollable_frame.bind(
+        "<Configure>",
+        lambda e: canvas.configure(
+            scrollregion=canvas.bbox("all")
+        )
+    )
+    
+    canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+    canvas.configure(yscrollcommand=scrollbar.set)
+    
+    # 显示技能列表和等级编辑框（分四列显示）
+    skill_entries = {}
+    skill_names = list(skill_dict.keys()) if skill_dict else []
+    
+    ttk.Label(scrollable_frame, text="技能列表 (0=无, 1=初, 2=中, 3=极)", font=("Arial", 12, "bold")).grid(
+        row=0, column=0, columnspan=8, pady=10)
+    
+    # 计算每列的技能数量
+    skills_per_column = (len(skill_names) + 3) // 4  # 向上取整确保所有技能都能显示
+    
+    # 分四列显示技能
+    for i, skill_name in enumerate(skill_names):
+        # 计算当前技能应该放在第几列和第几行
+        col_index = (i // skills_per_column) * 2  # 每列包含标签和输入框，所以乘以2
+        row_index = (i % skills_per_column) + 1   # 从第2行开始（第1行是标题）
+        
+        # 技能名称标签
+        ttk.Label(scrollable_frame, text=skill_name).grid(row=row_index, column=col_index, sticky="w", padx=(10, 0), pady=2)
+        
+        # 技能等级输入框
+        entry = ttk.Entry(scrollable_frame, width=10)
+        entry.insert(0, skill_dict.get(skill_name, "0"))
+        entry.grid(row=row_index, column=col_index + 1, padx=(0, 10), pady=2)
+        skill_entries[skill_name] = entry
+    
+    # 将canvas和scrollbar放入主框架
+    canvas.pack(side="left", fill="both", expand=True)
+    scrollbar.pack(side="right", fill="y")
+    
+    # 保存技能修改的函数
+    def save_skills():
+        # 保存技能数据
+        save_warrior_skills(warrior, skill_entries, original_skill_hex, start_pos, end_pos)
+        skills_window.destroy()
+    
+    # 添加保存按钮（放在窗口底部，不在滚动区域中）
+    button_frame = ttk.Frame(skills_window)
+    button_frame.pack(side="bottom", fill="x", padx=10, pady=10)
+    
+    save_button = ttk.Button(button_frame, text="保存", command=save_skills)
+    save_button.pack(pady=5)
+def save_warrior_skills(warrior, skill_entries, original_skill_hex, start_pos, end_pos):
+    try:
+        # 验证并收集技能等级
+        new_skills = {}
+        for skill_name, entry in skill_entries.items():
+            value = entry.get().strip()
+            if not value.isdigit() or int(value) < 0 or int(value) > 3:
+                raise ValueError(f"技能 {skill_name} 的等级必须是0-3之间的数字")
+            new_skills[skill_name] = value
+        # 获取原始技能字典
+        skills_str_new = ec.dict_to_skill_string(new_skills)
+        skills_hex_new=ec.quaternary_to_hex_战法(skills_str_new)
+        # 更新 warrior 中的技能十六进制字符串
+        warrior_source = warrior.get('source', '')
+        updated_source = warrior_source[:start_pos] + skills_hex_new + warrior_source[end_pos:]
+        warrior['source'] = updated_source
+
+    except Exception as e:
+        messagebox.showerror("错误", f"保存失败: {str(e)}")
+        print(f"保存错误详情: {str(e)}")
 def create_main_window():
     global tree
     root = tk.Tk()
@@ -130,7 +254,6 @@ def create_main_window():
     file_menu.add_command(label="重新加载", command=lambda: warriorsload())
     menubar.add_cascade(label="文件", menu=file_menu)
     root.config(menu=menubar)
-
 
 
     # 表格滚动条
@@ -199,9 +322,13 @@ def create_main_window():
             context_menu.post(event.x_root, event.y_root)
 
 
+    # Find this section in your code and modify it:
     context_menu = tk.Menu(tree, tearoff=0)
     context_menu.add_command(label="批量修改", command=lambda: open_batch_edit_window(tree))
     context_menu.add_command(label="删除武将", command=lambda: delete_warrior(tree))
+    # Add this new line:
+    context_menu.add_command(label="查看/编辑技能", command=lambda: show_warrior_skills(tree))
+        
     tree.bind("<Double-1>", on_double_click)
     tree.bind("<Button-3>", show_context_menu)    
     return root
