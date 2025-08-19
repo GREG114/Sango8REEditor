@@ -318,18 +318,101 @@ class encode:
         next_id = format(num, '04x')
         # 变回反序
         return next_id[2:4] + next_id[0:2]
+
+
+    def duplicate_warrior(self, warrior_data):
+        """
+        复制武将数据并生成新的唯一ID
+        :param warrior_data: 要复制的武将数据
+        :return: 新的武将数据
+        """
+        # 创建新武将数据副本
+        new_warrior = warrior_data.copy()
+        
+        # 获取当前所有已存在的ID列表
+        existing_ids = [w['idx'] for w in self.warriors]
+        
+        # 获取原武将ID并计算下一个ID
+        current_id = warrior_data['idx']
+        new_id = self.get_next_id(current_id)
+        
+        # 检查新ID是否已存在，如果存在则继续递增直到找到唯一ID
+        while new_id in existing_ids:
+            new_id = self.get_next_id(new_id)
+        
+        # 更新新武将的ID
+        new_warrior['idx'] = new_id
+        
+        # 查找新武将的存储位置
+        # 从'b90b'开始尝试查找空位
+        target_id = 'b90b'
+        target_position = 0
+        
+        # 创建一个已存在ID到位置的映射
+        id_to_position = {w['idx']: w['original_position'] for w in self.warriors}
+        
+        # 查找第一个空位
+        while target_id in id_to_position:
+            target_id = self.get_next_id(target_id)
+            target_position += 2294
+        
+        # 设置新武将的存储位置
+        new_warrior['original_position'] = target_position
+        new_warrior['original_length'] = 2294
+        
+        # 重新编码整个武将数据
+        new_warrior['source'] = self.encode_warrior(new_warrior)
+        
+        return new_warrior
+
+
+
     def save_to_bin_file(self, path):
         with open(path, 'r+b') as file:  # 以读写模式打开文件
-            file_content = ''  # 读取整个文件内容            
+            # 创建一个足够大的空字符串，最多150个武将位置
+            file_content = '0' * (2294 * 150)
+            file_content = list(file_content)  # 转换为列表以便修改
+            
+            # 将每个武将放到正确的位置
             for warrior in self.warriors:
-                encoded_data = self.encode_warrior(warrior)      
-                file_content+=encoded_data
-            length = len(file_content)/2294
-            while( length<150):
-                file_content+= self.defaultw
-                length = len(file_content)/2294
-            file.write(bytes.fromhex(file_content))
+                encoded_data = self.encode_warrior(warrior)
+                position = warrior.get('original_position', 0)
+                
+                # 确保encoded_data长度正确
+                if len(encoded_data) > 2294:
+                    encoded_data = encoded_data[:2294]
+                elif len(encoded_data) < 2294:
+                    encoded_data = encoded_data.ljust(2294, '0')
+                
+                # 将数据放到正确位置
+                for i, char in enumerate(encoded_data):
+                    if position + i < len(file_content):
+                        file_content[position + i] = char
+            
+            # 将剩余位置填充为默认武将数据
+            for i in range(len(self.warriors), 150):
+                position = i * 2294
+                default_data = self.defaultw
+                for j, char in enumerate(default_data):
+                    if position + j < len(file_content):
+                        file_content[position + j] = char
+            
+            # 转换回字符串并写入文件
+            file_content_str = ''.join(file_content)
+            file.write(bytes.fromhex(file_content_str))
             file.close()
+    # def save_to_bin_file(self, path):
+    #     with open(path, 'r+b') as file:  # 以读写模式打开文件
+    #         file_content = ''  # 读取整个文件内容            
+    #         for warrior in self.warriors:
+    #             encoded_data = self.encode_warrior(warrior)      
+    #             file_content+=encoded_data
+    #         length = len(file_content)/2294
+    #         while( length<150):
+    #             file_content+= self.defaultw
+    #             length = len(file_content)/2294
+    #         file.write(bytes.fromhex(file_content))
+    #         file.close()
 
     def introduce_decode(self,value_hex):
         try:
@@ -360,10 +443,10 @@ class encode:
         except ValueError as e:
             print(f"Error: Invalid hex string '{value_hex}' ({e})")
             return value_hex
-    def warrior_read(self,warrior_start,hex_string):
-        warrior_data= {'original_position': warrior_start}      
-        warrior_data['original_length']=2294   
-        warrior_str = hex_string[warrior_start:warrior_start+2294]
+    
+    
+    
+    def warrior_read_fromstr(self,warrior_str,warrior_data):
         x=self.properties_savedata["firstname"]['positions'][0]
         firstname = warrior_str[x:x+8]
         if firstname=='00000000':return None
@@ -407,7 +490,14 @@ class encode:
             warrior_data['战法']=skilldict          
         except Exception as ex:
             pass
+        return warrior_data
 
+    
+    def warrior_read(self,warrior_start,hex_string):
+        warrior_data= {'original_position': warrior_start}      
+        warrior_data['original_length']=2294   
+        warrior_str = hex_string[warrior_start:warrior_start+2294]
+        warrior_data=self.warrior_read_fromstr(warrior_str,warrior_data)
         return warrior_data
 
 

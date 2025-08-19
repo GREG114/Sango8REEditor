@@ -227,6 +227,37 @@ def save_warrior_skills(warrior, skill_entries, original_skill_hex, start_pos, e
     except Exception as e:
         messagebox.showerror("错误", f"保存失败: {str(e)}")
         print(f"保存错误详情: {str(e)}")
+
+def duplicate_warrior_in_tree(tree):
+    selected_items = tree.selection()
+    if not selected_items:
+        messagebox.showwarning("警告", "请先选择一个武将！")
+        return
+    
+    # 获取选中的武将
+    selected_item = selected_items[0]
+    values = tree.item(selected_item, "values")
+    
+    # 通过idx找到对应的武将数据
+    idx = tree.item(selected_item, "tags")[0]
+    warrior = next((w for w in warriors if w["idx"] == idx), None)
+    
+    if not warrior:
+        messagebox.showerror("错误", "无法找到选中的武将数据")
+        return
+    
+    # 使用encode类的duplicate_warrior方法创建新武将
+    new_warrior = ec.duplicate_warrior(warrior)
+    
+    # 将新武将添加到列表中
+    warriors.append(new_warrior)
+    
+    # 在表格中插入新武将
+    new_values = [new_warrior.get(col, "") for col in list(ec.properties_savedata.keys())]
+    tree.insert("", "end", values=new_values, iid=str(uuid.uuid4()), tags=(str(new_warrior["idx"]),))
+    
+    messagebox.showinfo("成功", f"武将已复制，新ID为: {new_warrior['idx']}")
+
 def create_main_window():
     global tree
     root = tk.Tk()
@@ -328,7 +359,7 @@ def create_main_window():
     context_menu.add_command(label="删除武将", command=lambda: delete_warrior(tree))
     # Add this new line:
     context_menu.add_command(label="查看/编辑技能", command=lambda: show_warrior_skills(tree))
-        
+    context_menu.add_command(label="复制武将", command=lambda: duplicate_warrior_in_tree(tree))
     tree.bind("<Double-1>", on_double_click)
     tree.bind("<Button-3>", show_context_menu)    
     return root
