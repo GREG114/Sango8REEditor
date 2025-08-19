@@ -36,7 +36,6 @@ def warriorsload():
             continue
         tree.insert("", "end", values=values, iid=str(uuid.uuid4()), tags=(str(idx),))
     update_warrior_count()  # 更新武将数量
-
 def open_batch_edit_window(tree):
     selected_items = tree.selection()
     if not selected_items:
@@ -55,9 +54,14 @@ def open_batch_edit_window(tree):
         if col == "idx":
             continue
         ttk.Label(batch_edit_window, text=f"{name}:").grid(row=i, column=0, padx=5, pady=5, sticky="e")
-        entry = ttk.Entry(batch_edit_window, width=30)
-        entry.grid(row=i, column=1, padx=5, pady=5)
-        entries[col] = entry
+        if col == 'qc':
+            combo = ttk.Combobox(batch_edit_window, width=30, values=list(ec.qicai.values()))
+            combo.grid(row=i, column=1, padx=5, pady=5)
+            entries[col] = combo
+        else:
+            entry = ttk.Entry(batch_edit_window, width=30)
+            entry.grid(row=i, column=1, padx=5, pady=5)
+            entries[col] = entry
 
     def apply_changes():
         for col, entry in entries.items():
@@ -75,11 +79,10 @@ def open_batch_edit_window(tree):
                     current_width = tree.column(column_names[col_index], "width")
                     if text_width > current_width:
                         tree.column(column_names[col_index], width=text_width)
-        messagebox.showinfo("成功", "批量修改已应用")
+        # messagebox.showinfo("成功", "批量修改已应用")
         batch_edit_window.destroy()
 
     ttk.Button(batch_edit_window, text="应用修改", command=apply_changes).grid(row=len(columns), column=0, columnspan=2, pady=10)
-
 def delete_warrior(tree):
     global warriors
     selected = tree.selection()
@@ -269,34 +272,45 @@ def create_main_window():
 
     save_button = ttk.Button(root, text="保存到文件", command=lambda: save())
     save_button.pack(pady=5)
-
     def on_double_click(event):
         item = tree.selection()[0]
         col = tree.identify_column(event.x)
         col_index = int(col.replace("#", "")) - 1
         col_name = columns[col_index]
         current_value = tree.item(item, "values")[col_index]
-        entry = ttk.Entry(tree)
-        entry.insert(0, current_value)
-        entry.place(x=event.x, y=event.y, anchor="w")
         
-        def save_edit(event):
-            new_value = entry.get()
-            values = list(tree.item(item, "values"))
-            values[col_index] = new_value
-            tree.item(item, values=values)
-            warrior_index = warriors.index(next(w for w in warriors if w["idx"] == tree.item(item, "values")[0]))
-            warriors[warrior_index][col_name] = new_value
-            font_obj = font.nametofont("TkDefaultFont")
-            text_width = font_obj.measure(new_value + "  ")
-            current_width = tree.column(column_names[col_index], "width")
-            if text_width > current_width:
-                tree.column(column_names[col_index], width=text_width)
-            entry.destroy()
+        bbox = tree.bbox(item, column=col)
+        if not bbox:
+            return
+        
+        def save_edit(widget, item, col_index, col_name):
+            new_value = widget.get().strip()
+            if new_value:
+                values = list(tree.item(item, "values"))
+                values[col_index] = new_value
+                tree.item(item, values=values)
+                warrior_index = warriors.index(next(w for w in warriors if w["idx"] == tree.item(item, "values")[0]))
+                warriors[warrior_index][col_name] = new_value
+                font_obj = font.nametofont("TkDefaultFont")
+                text_width = font_obj.measure(new_value + "  ")
+                current_width = tree.column(column_names[col_index], "width")
+                if text_width > current_width:
+                    tree.column(column_names[col_index], width=text_width)
+            widget.destroy()
 
-        entry.bind("<Return>", save_edit)
-        entry.focus()
-
+        if col_name == 'qc':
+            widget = ttk.Combobox(tree, width=15, values=list(ec.qicai.values()))
+            widget.insert(0, current_value)
+            widget.event_generate("<Button-1>", when="tail")  # 模拟点击展开下拉菜单
+            widget.bind("<<ComboboxSelected>>", lambda e: save_edit(widget, item, col_index, col_name))  # 选择即保存
+        else:
+            widget = ttk.Entry(tree)
+            widget.insert(0, current_value)
+            widget.bind("<Return>", lambda e: save_edit(widget, item, col_index, col_name))
+            widget.bind("<FocusOut>", lambda e: save_edit(widget, item, col_index, col_name))
+        
+        widget.place(x=bbox[0] + 2, y=bbox[1] + 2, width=bbox[2], height=bbox[3])
+        widget.focus() 
     def show_context_menu(event):
         selected_items = tree.selection()
         if selected_items:
