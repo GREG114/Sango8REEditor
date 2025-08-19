@@ -37,6 +37,13 @@ class encode:
             '1d': '名门望族',
             '1e': '恶逆无道'
         }
+        self.xg={
+            '01':'大胆',
+            '02':'莽撞',
+            '03':'温和',
+            '04':'沉着',
+            '05':'胆小',
+        }
         self.skill={
                 "positions": [298, 18],
                 "column_widths": 70,
@@ -164,13 +171,43 @@ class encode:
             #     "column_widths": 440,
             #     "trl": "技能"
             # }
-            ,
+             ,"xg": {
+                "positions": [454 , 2],
+                "column_widths": 70,
+                "trl": "性格"
+            },
+            "zlqx": {
+                "positions": [456, 2],
+                "column_widths": 70,
+                "trl": "战略倾向"
+            },
+            # "wuming": {
+            #     "positions": [478, 4],
+            #     "column_widths": 70,
+            #     "trl": "武名"
+            # },
+            # "wm": {
+            #     "positions": [480, 4],
+            #     "column_widths": 70,
+            #     "trl": "文名"
+            # },
+            # "em": {
+            #     "positions": [484, 4],
+            #     "column_widths": 70,
+            #     "trl": "恶名"
+            # },
+            # "zsms": {
+            #     "positions": [484, 4],
+            #     "column_widths": 70,
+            #     "trl": "重视名声"
+            # },
             "js": {
                 "positions": [490, 1010],
                 "column_widths": 1400,
                 "trl": "介绍"
             }
-            # 你可以在这里添加更多的字段
+            # 你可以在这里添加更多的字段,
+           
         }
     
     
@@ -258,7 +295,7 @@ class encode:
         
     def encode_warrior(self, warrior_data, original_warrior_hex=''):
         # original_warrior_hex 是读取文件时得到的原始十六进制字符串
-        modified_hex = warrior_data['source']       
+        modified_hex = warrior_data['source']   
         firstname = warrior_data.get('firstname','')
         if firstname == '00000000':
             return modified_hex
@@ -289,14 +326,20 @@ class encode:
                     value =   f"{int(v):02X}"
                 elif field == 'qc':   
                     dict_r = {self.qicai[x]:x for x in self.qicai}
-                    value =dict_r[v] 
-                else:
-                    value = warrior_data.get(field, '')                
+                    value =dict_r[v]   
+                elif field == 'xg':   
+                    dict_r = {self.xg[x]:x for x in self.xg}
+                    value =dict_r[v]                         
                 # 确保value的长度与预期的长度匹配
+                else:
+                    value = warrior_data.get(field, '')  
+
                 if len(value) < length:
                     value += '0' * (length - len(value))
                 elif len(value) > length:
                     value = value[:length]                
+                
+                
                 # 替换修改后的数据
                 modified_hex = modified_hex[:start] + value + modified_hex[start+length:]
         f=len(modified_hex)
@@ -319,6 +362,27 @@ class encode:
         # 变回反序
         return next_id[2:4] + next_id[0:2]
 
+    def find_next_available_position(self):
+        """
+        查找下一个可用的武将位置
+        :return: (position, id) 下一个可用位置和对应的ID
+        """
+        # 获取当前所有已存在的ID列表
+        existing_ids = [w['idx'] for w in self.warriors]
+        
+        # 默认起始ID为'b90b'
+        current_id = 'b90b'
+        
+        # 遍历位置，从0开始
+        for position in range(150):  # 最多150个武将
+            # 检查当前ID是否已存在
+            if current_id not in existing_ids:
+                return (position * 2294, current_id)
+            # 获取下一个ID
+            current_id = self.get_next_id(current_id)
+        
+        # 如果没有找到可用位置，返回None
+        return (None, None)
 
     def duplicate_warrior(self, warrior_data):
         """
@@ -328,17 +392,11 @@ class encode:
         """
         # 创建新武将数据副本
         new_warrior = warrior_data.copy()
+        # 查找下一个可用位置和ID
+        position, new_id = self.find_next_available_position()
         
-        # 获取当前所有已存在的ID列表
-        existing_ids = [w['idx'] for w in self.warriors]
-        
-        # 获取原武将ID并计算下一个ID
-        current_id = warrior_data['idx']
-        new_id = self.get_next_id(current_id)
-        
-        # 检查新ID是否已存在，如果存在则继续递增直到找到唯一ID
-        while new_id in existing_ids:
-            new_id = self.get_next_id(new_id)
+        if position is None or new_id is None:
+            raise Exception("没有可用的武将位置")
         
         # 更新新武将的ID
         new_warrior['idx'] = new_id
@@ -365,7 +423,62 @@ class encode:
         
         return new_warrior
 
-
+    def create_new_warrior(self):
+        """
+        使用默认武将数据创建一个新的武将
+        :return: 新的武将数据
+        """
+        # 查找下一个可用位置和ID
+        position, new_id = self.find_next_available_position()
+        
+        if position is None or new_id is None:
+            raise Exception("没有可用的武将位置")
+        
+        # 使用默认数据创建新武将
+        new_warrior_data = self.warrior_read_fromstr(self.defaultw, {})
+        
+        if new_warrior_data is not None:
+            # 更新ID和位置信息
+            new_warrior_data['idx'] = new_id
+            new_warrior_data['original_position'] = position
+            new_warrior_data['original_length'] = 2294
+            # 确保source是完整的默认数据
+            new_warrior_data['source'] = self.defaultw
+        else:
+            # 如果解析失败，创建一个基本的武将数据结构
+            new_warrior_data = {
+                'idx': new_id,
+                'original_position': position,
+                'original_length': 2294,
+                'source': self.defaultw,
+                'surname': '',
+                'firstname': '',
+                'word': '',
+                'headshot': 0,
+                'sex': '男',
+                'born': 180,
+                'died': 250,
+                'father': '0000',
+                'mother': '0000',
+                'wife1': '0000',
+                'wife2': '0000',
+                'wife3': '0000',
+                'ty': 50,
+                'xt': 50,
+                'wl': 50,
+                'zl': 50,
+                'zz': 50,
+                'ml': 50,
+                'qy': 0,
+                'qc': '大德',
+                'js': ''
+            }
+        
+        # 重新编码整个武将数据，确保ID被正确设置
+        encoded_source = self.encode_warrior(new_warrior_data)
+        new_warrior_data['source'] = encoded_source
+        
+        return new_warrior_data
 
     def save_to_bin_file(self, path):
         with open(path, 'r+b') as file:  # 以读写模式打开文件
@@ -472,11 +585,13 @@ class encode:
                     else:
                         value = int(value_hex,16)
                 elif field in ['ty','wl','zz','zl','ml']:                            
-                    value = int(value_hex,16)
+                    value = int(value_hex,16)   
                 elif field =='qc':
                     value = self.qicai[value_hex]
                 elif field =='qy':
                     value = int(value_hex,16)
+                elif field =='xg':
+                    value = self.xg[value_hex]
                 else:
                     value = value_hex  # 其他字段可能需要不同的处理方式
                      
@@ -490,6 +605,7 @@ class encode:
             warrior_data['战法']=skilldict          
         except Exception as ex:
             pass
+        # x=warrior_str.index("07d0")
         return warrior_data
 
     
