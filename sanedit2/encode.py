@@ -183,21 +183,21 @@ class encode:
                 "column_widths": 70,
                 "trl": "战略倾向"
             },
-            # "wuming": {
-            #     "positions": [478, 4],
-            #     "column_widths": 70,
-            #     "trl": "武名"
-            # },
-            # "wm": {
-            #     "positions": [480, 4],
-            #     "column_widths": 70,
-            #     "trl": "文名"
-            # },
-            # "em": {
-            #     "positions": [484, 4],
-            #     "column_widths": 70,
-            #     "trl": "恶名"
-            # },
+            "wuming": {
+                "positions": [478, 4],
+                "column_widths": 70,
+                "trl": "武名"
+            },
+            "wm": {
+                "positions": [482, 4],
+                "column_widths": 70,
+                "trl": "文名"
+            },
+            "em": {
+                "positions": [486, 4],
+                "column_widths": 70,
+                "trl": "恶名"
+            },
             # "zsms": {
             #     "positions": [484, 4],
             #     "column_widths": 70,
@@ -324,9 +324,8 @@ class encode:
                         value =  hex(int(v))[2:].zfill(4)                       
                 elif field in ['ty','wl','zz','zl','ml']:                    
                     value = f"{int(v):02x}"
-                    print(field,value,v)
                 elif field == 'qy':               
-                    value =   f"{int(v):02X}"
+                    value =   f"{int(v):02x}"
                 elif field == 'qc':   
                     dict_r = {self.qicai[x]:x for x in self.qicai}
                     value =dict_r[v]   
@@ -334,18 +333,28 @@ class encode:
                     dict_r = {self.xg[x]:x for x in self.xg}
                     value =dict_r[v]                         
                 # 确保value的长度与预期的长度匹配
+                # elif field =='em':
+                #     v=str(v)
+                #     value =  f"{int(v):04x}"
+                #     value=value[2:4]+value[0:2]
+                    
+                elif field in ['wm','wuming','em']:
+                    v=str(v)
+                    value =  f"{int(v):04x}"
+                    value=value[2:4]+value[0:2]
                 else:
                     value = warrior_data.get(field, '')  
 
-                if len(value) < length:
-                    value += '0' * (length - len(value))
-                elif len(value) > length:
-                    value = value[:length]                
+                # if len(value) < length:
+                #     value += '0' * (length - len(value))
+                # elif len(value) > length:
+                #     value = value[:length]                
                 
                 
                 # 替换修改后的数据
                 modified_hex = modified_hex[:start] + value + modified_hex[start+length:]
-        f=len(modified_hex)
+                if(warrior_data['idx']=='bc0b' and field=='wuming'):
+                    print(warrior_data['surname'],warrior_data['firstname'],modified_hex[474:490])        
         return modified_hex
         
     def get_next_id(self, current_id):
@@ -519,18 +528,6 @@ class encode:
             file_content_str = ''.join(file_content)
             file.write(bytes.fromhex(file_content_str))
             file.close()
-    # def save_to_bin_file(self, path):
-    #     with open(path, 'r+b') as file:  # 以读写模式打开文件
-    #         file_content = ''  # 读取整个文件内容            
-    #         for warrior in self.warriors:
-    #             encoded_data = self.encode_warrior(warrior)      
-    #             file_content+=encoded_data
-    #         length = len(file_content)/2294
-    #         while( length<150):
-    #             file_content+= self.defaultw
-    #             length = len(file_content)/2294
-    #         file.write(bytes.fromhex(file_content))
-    #         file.close()
 
     def introduce_decode(self,value_hex):
         try:
@@ -597,20 +594,24 @@ class encode:
                     value = int(value_hex,16)
                 elif field =='xg':
                     value = self.xg[value_hex]
+                elif field in ['wuming','wm','em']:
+                    value_hex = value_hex[2:4] + value_hex[0:2]  # 从 '07D0' 变为 'D007'
+                    value = int(value_hex, 16)  # 转为整数，'D007' -> 53255
                 else:
                     value = value_hex  # 其他字段可能需要不同的处理方式
                      
                 warrior_data[field] = value
+        if(warrior_data['idx'] in ['bc0b','b90b']):
+            print(warrior_data['surname'],warrior_data['firstname'],warrior_str[474:490])
         skill_str_16=warrior_str[self.skill["positions"][0]:self.skill["positions"][0]+self.skill["positions"][1]]        
         skill_str=self.hex_to_quaternary_战法(skill_str_16) 
         # self.exportFile(warrior_str,warrior_data['idx'])  
-        warrior_data['source']=warrior_str
+        warrior_data['source']=warrior_str        
         try:
             skilldict = self.parse_skills_to_dict(skill_str)
             warrior_data['战法']=skilldict          
         except Exception as ex:
             pass
-        # x=warrior_str.index("07d0")
         return warrior_data
 
     
