@@ -4,6 +4,8 @@ from encode import encode
 import os, binascii
 from tkinter import font, messagebox
 import uuid
+import random
+from namePick import get_name,get_surname
 
 # pyinstaller --onefile --hidden-import=encode main.py
 # 定义bin文件目录
@@ -203,26 +205,28 @@ def duplicate_warrior_in_tree(tree):
     global warriors
     selected_items = tree.selection()
     if not selected_items:
-        messagebox.showwarning("警告", "请先选择一个武将！")
+        messagebox.showwarning("警告", "请先选择要复制的武将！")
         return
     
-    selected_item = selected_items[0]
-    values = tree.item(selected_item, "values")
-    idx = tree.item(selected_item, "tags")[0]
-    warrior = next((w for w in warriors if w["idx"] == idx), None)
+    for item in selected_items:
+        idx = tree.item(item, "tags")[0]
+        warrior = next((w for w in warriors if w["idx"] == idx), None)
+        if not warrior:
+            messagebox.showerror("错误", f"无法找到ID为{idx}的武将数据")
+            continue
+        new_warrior = ec.duplicate_warrior(warrior,messagebox)
+        if(len(warriors)==150):
+            messagebox.showwarning("警告", "已满150个武将！")
+            break
+        warriors.append(new_warrior)
+        new_values = [new_warrior.get(col, "") for col in list(ec.properties_savedata.keys())]
+        tree.insert("", "end", values=new_values, iid=str(uuid.uuid4()), tags=(str(new_warrior["idx"]),))
     
-    if not warrior:
-        messagebox.showerror("错误", "无法找到选中的武将数据")
-        return
-    
-    new_warrior = ec.duplicate_warrior(warrior)
-    warriors.append(new_warrior)
-    new_values = [new_warrior.get(col, "") for col in list(ec.properties_savedata.keys())]
-    tree.insert("", "end", values=new_values, iid=str(uuid.uuid4()), tags=(str(new_warrior["idx"]),))
-    # messagebox.showinfo("成功", f"武将已复制，新ID为: {new_warrior['idx']}")
-    update_warrior_count()  # 更新武将数量
+    messagebox.showinfo("成功", f"已复制{len(selected_items)}个武将！")
+    update_warrior_count()
 
 def create_new_warrior(tree):
+    return
     global warriors
     new_warrior = ec.create_new_warrior()  # 假设encode类有create_new_warrior方法
     warriors.append(new_warrior)
@@ -231,6 +235,127 @@ def create_new_warrior(tree):
     # messagebox.showinfo("成功", f"已创建新武将，ID为: {new_warrior['idx']}")
     update_warrior_count()  # 更新武将数量
 
+
+def rename_selected_warriors(tree):
+    global warriors
+    selected_items = tree.selection()
+    if not selected_items:
+        messagebox.showwarning("警告", "请先选择要重命名的武将！")
+        return
+    
+    for item in selected_items:
+        idx = tree.item(item, "tags")[0]
+        warrior = next((w for w in warriors if w["idx"] == idx), None)
+        if not warrior:
+            continue
+        new_surname = get_surname()
+        new_name = get_name()
+        warrior['surname'] = new_surname
+        warrior['firstname'] = new_name
+        values = list(tree.item(item, "values"))
+        col_index_surname = list(ec.properties_savedata.keys()).index('surname')
+        col_index_firstname = list(ec.properties_savedata.keys()).index('firstname')
+        values[col_index_surname] = new_surname
+        values[col_index_firstname] = new_name
+        tree.item(item, values=values)
+def pic_random(tree):
+    global warriors
+    selected_items = tree.selection()
+    if not selected_items:
+        messagebox.showwarning("警告", "请先选择要修改立绘的武将！")
+        return
+    
+    for item in selected_items:
+        idx = tree.item(item, "tags")[0]
+        warrior = next((w for w in warriors if w["idx"] == idx), None)
+        if not warrior:
+            messagebox.showerror("错误", f"无法找到ID为{idx}的武将数据")
+            continue
+        new_pic = f"{random.randint(1, 35):02d}"
+        warrior['headshot'] = new_pic
+        values = list(tree.item(item, "values"))
+        col_index_pic = list(ec.properties_savedata.keys()).index('headshot')
+        values[col_index_pic] = new_pic
+        tree.item(item, values=values)
+    
+    # messagebox.showinfo("成功", f"已为{len(selected_items)}个武将随机修改立绘！")
+def properties_random(tree):
+    global warriors
+    selected_items = tree.selection()
+    if not selected_items:
+        messagebox.showwarning("警告", "请先选择要修改属性的武将！")
+        return
+    
+    for item in selected_items:
+        idx = tree.item(item, "tags")[0]
+        warrior = next((w for w in warriors if w["idx"] == idx), None)
+        if not warrior:
+            messagebox.showerror("错误", f"无法找到ID为{idx}的武将数据")
+            continue
+        
+        # 随机五维属性
+        properties = ['ty', 'wl', 'zz', 'ml', 'zl']
+        for prop in properties:
+            new_value = f"{random.randint(1, 99)}"
+            warrior[prop] = new_value
+            col_index = list(ec.properties_savedata.keys()).index(prop)
+            values = list(tree.item(item, "values"))
+            values[col_index] = new_value
+            tree.item(item, values=values)
+        
+        # 随机立绘
+        new_pic = f"{random.randint(1, 35):02d}"
+        warrior['headshot'] = new_pic
+        col_index_pic = list(ec.properties_savedata.keys()).index('headshot')
+        values = list(tree.item(item, "values"))
+        values[col_index_pic] = new_pic
+        tree.item(item, values=values)
+        
+        # 随机姓名
+        new_surname = get_surname()
+        new_name = get_name()
+        warrior['surname'] = new_surname
+        warrior['firstname'] = new_name
+        col_index_surname = list(ec.properties_savedata.keys()).index('surname')
+        col_index_firstname = list(ec.properties_savedata.keys()).index('firstname')
+        values = list(tree.item(item, "values"))
+        values[col_index_surname] = new_surname
+        values[col_index_firstname] = new_name
+        tree.item(item, values=values)
+        
+        # 随机生年和死年
+        born_year = random.randint(165, 210)
+        min_died_year = born_year + 25
+        max_died_year = min(born_year + 98, 210+98)
+        died_year = random.randint(min_died_year, max_died_year)
+        warrior['born'] = f"{born_year}"
+        warrior['died'] = f"{died_year}"
+        col_index_born = list(ec.properties_savedata.keys()).index('born')
+        col_index_died = list(ec.properties_savedata.keys()).index('died')
+        values = list(tree.item(item, "values"))
+        values[col_index_born] = f"{born_year}"
+        values[col_index_died] = f"{died_year}"
+        tree.item(item, values=values)
+
+def sort_column(col_name, tree, reverse):
+    # 找到对应的英文列名
+    col = next((k for k, v in ec.properties_savedata.items() if v["trl"] == col_name), None)
+    if not col:
+        return  # 如果找不到对应列，直接返回
+    # 获取所有行的数据
+    data = [(tree.set(item, col_name), item) for item in tree.get_children()]
+    # 尝试将值转换为数字进行排序，失败则按字符串排序
+    try:
+        data.sort(key=lambda x: float(x[0]), reverse=reverse)
+    except ValueError:
+        data.sort(key=lambda x: x[0], reverse=reverse)
+    
+    # 重新排列行
+    for index, (_, item) in enumerate(data):
+        tree.move(item, "", index)
+    
+    # 切换排序方向
+    tree.heading(col_name, command=lambda: sort_column(col_name, tree, not reverse))
 def create_main_window():
     global tree, warrior_count_label
     root = tk.Tk()
@@ -249,7 +374,10 @@ def create_main_window():
     column_names = [ec.properties_savedata[col]["trl"] for col in columns]
     tree = ttk.Treeview(tree_frame, columns=column_names, show="headings")
     for col, name in zip(columns, column_names):
-        tree.heading(name, text=name)
+        # tree.heading(name, text=name)
+        # 在 tree.heading 设置中添加 command 参数
+        tree.heading(name, text=name, command=lambda c=name: sort_column(c, tree, False))
+        # tree.heading(name, text=name, command=lambda c=col: sort_column(c, tree, False))
         width = ec.properties_savedata[col].get("column_widths", 100)
         tree.column(name, width=width, anchor="center")
     warriorsload()
@@ -321,6 +449,11 @@ def create_main_window():
     context_menu.add_command(label="删除武将", command=lambda: delete_warrior(tree))
     context_menu.add_command(label="查看/编辑技能", command=lambda: show_warrior_skills(tree))
     context_menu.add_command(label="复制武将", command=lambda: duplicate_warrior_in_tree(tree))
+    context_menu.add_command(label="随机重命名", command=lambda: rename_selected_warriors(tree))
+    context_menu.add_command(label="随机修改立绘", command=lambda: pic_random(tree))
+    context_menu.add_command(label="随机修改属性", command=lambda: properties_random(tree))
+    
+
     tree.bind("<Double-1>", on_double_click)
     tree.bind("<Button-3>", show_context_menu)
     return root

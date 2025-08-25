@@ -35,7 +35,9 @@ class encode:
             '1b': '天下无双',
             '1c': '闭月羞花',
             '1d': '名门望族',
-            '1e': '恶逆无道'
+            '1e': '恶逆无道',
+            '65': '怪物',
+            '66': '残兵谍报',
         }
         self.xg={
             '01':'大胆',
@@ -321,7 +323,8 @@ class encode:
                     else:                        
                         value =  hex(int(v))[2:].zfill(4)                       
                 elif field in ['ty','wl','zz','zl','ml']:                    
-                    value =  hex(int(v))[2:]
+                    value = f"{int(v):02x}"
+                    print(field,value,v)
                 elif field == 'qy':               
                     value =   f"{int(v):02X}"
                 elif field == 'qc':   
@@ -384,7 +387,7 @@ class encode:
         # 如果没有找到可用位置，返回None
         return (None, None)
 
-    def duplicate_warrior(self, warrior_data):
+    def duplicate_warrior(self, warrior_data,messagebox=None):
         """
         复制武将数据并生成新的唯一ID
         :param warrior_data: 要复制的武将数据
@@ -396,6 +399,8 @@ class encode:
         position, new_id = self.find_next_available_position()
         
         if position is None or new_id is None:
+            if messagebox:
+                messagebox.showerror("错误", "没有可用的武将位置")
             raise Exception("没有可用的武将位置")
         
         # 更新新武将的ID
