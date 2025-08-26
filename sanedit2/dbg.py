@@ -1,5 +1,5 @@
-from namePick import get_name,get_surname
+from wproperty import wproperty
 
-
-x=get_surname()
-print(x)
+wp = wproperty()
+res=wp.get_random_value("headshot")
+print(res)

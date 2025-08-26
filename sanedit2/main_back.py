@@ -1,40 +1,35 @@
 import tkinter as tk
 from tkinter import ttk
 from encode import encode
-import os, binascii,uuid
+import os, binascii
 from tkinter import font, messagebox
-
-
+from wproperty import wproperty
+import uuid
 import random
 from namePick import get_name,get_surname
-from wproperty import wproperty
-wp=None
 
-tree=None
-warrior_count_label = None  
+wp=wproperty()
+# pyinstaller --onefile --hidden-import=encode main.py
+# 定义bin文件目录
 path = os.path.join(os.environ['USERPROFILE'], 'Documents', 'KoeiTecmo', 'SAN8R', 'SAVE_DATA', 'edit_personSC.bin')
-ec = None
-# 初始化编码器
-def init():
-    global ec,wp
-    try:
-        ec=encode(path)
-        wp=wproperty(ec)
-        if not ec.decode_bin_file():
-           return "无效的武将文件！"
-    except Exception as e:
-        return "无效的武将文件！"
-# 保存武将数据
-def save():
-    global warriors
-    ec.warriors = warriors
-    ec.save_to_bin_file(path)
-# 读取武将数据
-def warriorsload(reload):
+if not os.path.exists(path):
+    raise FileNotFoundError(f"路径不存在：{path}")
+tree = None
+ec = encode()
+warriors = ec.warriors
+# 全局变量用于追踪武将数量Label
+warrior_count_label = None  
+
+
+def update_warrior_count():
+    global warrior_count_label, warriors
+    if warrior_count_label:
+        warrior_count_label.config(text=f"当前武将数量: {len(warriors)}")
+
+def warriorsload():
     global warriors, tree, warrior_count_label
-    if reload :
-        ec.decode_bin_file()
-    warriors = ec.warriors
+    if ec.decode_bin_file(path):
+        warriors = ec.warriors
     # 清空现有表格
     for item in tree.get_children():
         tree.delete(item)
@@ -47,38 +42,12 @@ def warriorsload(reload):
             continue
         tree.insert("", "end", values=values, iid=str(uuid.uuid4()), tags=(str(idx),))
     update_warrior_count()  # 更新武将数量
-# 表格排序方法
-def sort_column(col_name, tree, reverse):
-    # 找到对应的英文列名
-    col = next((k for k, v in ec.properties_savedata.items() if v["trl"] == col_name), None)
-    if not col:
-        return  # 如果找不到对应列，直接返回
-    # 获取所有行的数据
-    data = [(tree.set(item, col_name), item) for item in tree.get_children()]
-    # 尝试将值转换为数字进行排序，失败则按字符串排序
-    try:
-        data.sort(key=lambda x: float(x[0]), reverse=reverse)
-    except ValueError:
-        data.sort(key=lambda x: x[0], reverse=reverse)
-    
-    # 重新排列行
-    for index, (_, item) in enumerate(data):
-        tree.move(item, "", index)
-    
-    # 切换排序方向
-    tree.heading(col_name, command=lambda: sort_column(col_name, tree, not reverse))
-#更新武将数量标签
-def update_warrior_count():
-    global warrior_count_label, warriors
-    if warrior_count_label:
-        warrior_count_label.config(text=f"当前武将数量: {len(warriors)}")
-# region 菜单功能
-# 批量修改属性
 def open_batch_edit_window(tree):
     selected_items = tree.selection()
     if not selected_items:
         messagebox.showwarning("警告", "请先选择要批量修改的武将")
         return
+
     batch_edit_window = tk.Toplevel()
     batch_edit_window.title("批量修改武将属性")
     batch_edit_window.geometry("400x900")
@@ -120,7 +89,6 @@ def open_batch_edit_window(tree):
         batch_edit_window.destroy()
 
     ttk.Button(batch_edit_window, text="应用修改", command=apply_changes).grid(row=len(columns), column=0, columnspan=2, pady=10)
-# 删除武将
 def delete_warrior(tree):
     global warriors
     selected = tree.selection()
@@ -133,6 +101,11 @@ def delete_warrior(tree):
         tree.delete(iid)
     messagebox.showinfo("成功", "已删除选中的武将！")
     update_warrior_count()  # 更新武将数量
+
+def save():
+    global warriors
+    ec.warriors = warriors
+    ec.save_to_bin_file(path)
 
 def show_warrior_skills(tree):
     selected_items = tree.selection()
@@ -361,49 +334,67 @@ def properties_random(tree):
         values[col_index_died] = f"{died_year}"
         tree.item(item, values=values)
 
-
-# endregion
-
-
-
-
+def sort_column(col_name, tree, reverse):
+    # 找到对应的英文列名
+    col = next((k for k, v in ec.properties_savedata.items() if v["trl"] == col_name), None)
+    if not col:
+        return  # 如果找不到对应列，直接返回
+    # 获取所有行的数据
+    data = [(tree.set(item, col_name), item) for item in tree.get_children()]
+    # 尝试将值转换为数字进行排序，失败则按字符串排序
+    try:
+        data.sort(key=lambda x: float(x[0]), reverse=reverse)
+    except ValueError:
+        data.sort(key=lambda x: x[0], reverse=reverse)
+    
+    # 重新排列行
+    for index, (_, item) in enumerate(data):
+        tree.move(item, "", index)
+    
+    # 切换排序方向
+    tree.heading(col_name, command=lambda: sort_column(col_name, tree, not reverse))
 def create_main_window():
-    global tree, warrior_count_label,ec
-    init()
-    # region 主窗口控件创建和处理
+    global tree, warrior_count_label
     root = tk.Tk()
     root.title("三国志8RE自建武将修改器")
     root.geometry("1280x640")
+    
     menubar = tk.Menu(root)
     tree_frame = ttk.Frame(root)
-    tree_frame.pack(fill="both", expand=True, padx=10, pady=(10, 50))  
+    tree_frame.pack(fill="both", expand=True, padx=10, pady=(10, 50))
+    
     # 添加武将数量显示
-    warrior_count_label = ttk.Label(root, text=f"当前武将数量: {len(ec.warriors)}", font=("Arial", 12))
-    warrior_count_label.pack(pady=5)   
-    file_menu = tk.Menu(menubar, tearoff=0)
-    file_menu.add_command(label="重新加载", command=lambda: warriorsload(True))
-    menubar.add_cascade(label="文件", menu=file_menu)
-    root.config(menu=menubar)
+    warrior_count_label = ttk.Label(root, text=f"当前武将数量: {len(warriors)}", font=("Arial", 12))
+    warrior_count_label.pack(pady=5)
+    
     columns = list(ec.properties_savedata.keys())
-    column_names = [ec.properties_savedata[col]["trl"] for col in columns]    
+    column_names = [ec.properties_savedata[col]["trl"] for col in columns]
     tree = ttk.Treeview(tree_frame, columns=column_names, show="headings")
     for col, name in zip(columns, column_names):
+        # 在 tree.heading 设置中添加 command 参数
         tree.heading(name, text=name, command=lambda c=name: sort_column(c, tree, False))
         width = ec.properties_savedata[col].get("column_widths", 100)
-        tree.column(name, width=width, anchor="center")             
+        tree.column(name, width=width, anchor="center")
+    warriorsload()
+
+    file_menu = tk.Menu(menubar, tearoff=0)
+    file_menu.add_command(label="重新加载", command=lambda: warriorsload())
+    file_menu.add_command(label="新建武将", command=lambda: create_new_warrior(tree))
+    menubar.add_cascade(label="文件", menu=file_menu)
+    root.config(menu=menubar)
 
     v_scrollbar = ttk.Scrollbar(tree_frame, orient="vertical", command=tree.yview)
     h_scrollbar = ttk.Scrollbar(tree_frame, orient="horizontal", command=tree.xview)
     tree.configure(yscrollcommand=v_scrollbar.set, xscrollcommand=h_scrollbar.set)
     tree.grid(row=0, column=0, sticky="nsew")
     v_scrollbar.grid(row=0, column=1, sticky="ns")
-    h_scrollbar.grid(row=1, column=0, sticky="ew")    
+    h_scrollbar.grid(row=1, column=0, sticky="ew")
+    
     tree_frame.grid_rowconfigure(0, weight=1)
     tree_frame.grid_columnconfigure(0, weight=1)
 
     save_button = ttk.Button(root, text="保存到文件", command=lambda: save())
     save_button.pack(pady=5)
-    context_menu = tk.Menu(tree, tearoff=0)
     def on_double_click(event):
         item = tree.selection()[0]
         col = tree.identify_column(event.x)
@@ -448,8 +439,7 @@ def create_main_window():
         if selected_items:
             context_menu.post(event.x_root, event.y_root)
 
-    tree.bind("<Double-1>", on_double_click)
-    tree.bind("<Button-3>", show_context_menu)
+    context_menu = tk.Menu(tree, tearoff=0)
     context_menu.add_command(label="批量修改", command=lambda: open_batch_edit_window(tree))
     context_menu.add_command(label="删除武将", command=lambda: delete_warrior(tree))
     context_menu.add_command(label="查看/编辑技能", command=lambda: show_warrior_skills(tree))
@@ -458,12 +448,11 @@ def create_main_window():
     context_menu.add_command(label="随机修改立绘", command=lambda: pic_random(tree))
     context_menu.add_command(label="随机修改属性", command=lambda: properties_random(tree))
     
-    # endregion
-    # 加载武将数据
-    warriorsload(False) 
+
+    tree.bind("<Double-1>", on_double_click)
+    tree.bind("<Button-3>", show_context_menu)
     return root
 
 if __name__ == "__main__":
     window = create_main_window()
     window.mainloop()
-    

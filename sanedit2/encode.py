@@ -1,7 +1,11 @@
-import binascii
+import binascii,random,os
+from value_dict import *
 class encode:
     
-    def __init__(self):    
+    def __init__(self,path=''):   
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"路径不存在：{path}") 
+        self.path = path
         self.warriors=[]   
         self.defaultw= '00000a03000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000323232323200ff0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
         self.encoding = 'utf-16le'
@@ -60,32 +64,38 @@ class encode:
             '奋起', '鼓舞', '谩骂', '治疗', '天启',
             '风变', '天变', '妖术', '幻术', '落雷'
         ]  
-      
         self.properties_savedata = {
             "idx": {
                 "positions": [0, 4],
                 "column_widths": 100,
-                "trl": "编号"
+                "trl": "编号",
+                "type":"str"
             },
             "surname": {
                 "positions": [8, 8],
                 "column_widths": 100,
-                "trl": "姓"
+                "trl": "姓",
+                "type":"utf-16le"
             },
             "firstname": {
                 "positions": [52, 8],
                 "column_widths": 100,
-                "trl": "名"
+                "trl": "名",
+                "type":"utf-16le"
             },
             "word": {
                 "positions": [96, 8],
                 "column_widths": 100,
-                "trl": "字"
+                "trl": "字",
+                "type":"utf-16le"
             },
             "headshot": {
                 "positions": [108, 4],
                 "column_widths": 100,
-                "trl": "立绘编号"
+                "trl": "立绘编号",
+                "type":"int",
+                "range": (1,35),
+                "format": "int(str)"
             },
             "sex": {
                 "positions": [112, 2],
@@ -95,7 +105,10 @@ class encode:
             "born": {
                 "positions": [114, 4],
                 "column_widths": 70,
-                "trl": "生年"
+                "trl": "生年",
+                "type":"int",
+                "range": (165,210),
+                "format": "int(str)"
             },
             "died": {
                 "positions": [118,4 ],
@@ -157,23 +170,7 @@ class encode:
                 "positions": [172, 2],
                 "column_widths": 70,
                 "trl": "魅力"
-            },
-            "qy": {
-                "positions": [474, 2],
-                "column_widths": 70,
-                "trl": "情义"
-            },
-            "qc": {
-                "positions": [460, 2],
-                "column_widths": 70,
-                "trl": "奇才"
-            }
-            # ,"skill":{                
-            #     "positions": [298, 36],
-            #     "column_widths": 440,
-            #     "trl": "技能"
-            # }
-             ,"xg": {
+            },"xg": {
                 "positions": [454 , 2],
                 "column_widths": 70,
                 "trl": "性格"
@@ -183,6 +180,21 @@ class encode:
                 "column_widths": 70,
                 "trl": "战略倾向"
             },
+            "qc": {
+                "positions": [460, 2],
+                "column_widths": 70,
+                "trl": "奇才"
+            },
+            "qy": {
+                "positions": [474, 2],
+                "column_widths": 70,
+                "trl": "情义"
+            },
+            "unknown": {
+                "positions": [476, 2],
+                "column_widths": 70,
+                "trl": "未知"
+            } ,
             "wuming": {
                 "positions": [478, 4],
                 "column_widths": 70,
@@ -212,7 +224,7 @@ class encode:
            
         }
     
-    
+
     #技能相关
     def reorder_skills(self,skills_string):
     # 确保字符串长度是32
@@ -252,7 +264,6 @@ class encode:
         #拼接
         result = ''.join(rgps)              
         return result[:35]
-            
     def quaternary_to_hex_战法(self, quaternary):
         if len(quaternary) != 35:
             raise ValueError("四进制字符串长度必须为35")
@@ -289,12 +300,10 @@ class encode:
         for i, skill_name in enumerate(skill_names):
             skills_dict[skill_name]=ordered_skills[i]        
         return skills_dict
-
     def dict_to_skill_string(self, skills_dict):
         if len(skills_dict) != 35:
             raise ValueError("技能字典必须包含35个技能")
         return ''.join(skills_dict.get(name, '0') for name in self.skill_names)
-        
     def encode_warrior(self, warrior_data, original_warrior_hex=''):
         # original_warrior_hex 是读取文件时得到的原始十六进制字符串
         modified_hex = warrior_data['source']   
@@ -356,7 +365,6 @@ class encode:
                 if(warrior_data['idx']=='bc0b' and field=='wuming'):
                     print(warrior_data['surname'],warrior_data['firstname'],modified_hex[474:490])        
         return modified_hex
-        
     def get_next_id(self, current_id):
         """
         根据当前编号返回下一位编号，处理反序和进位逻辑。
@@ -373,7 +381,6 @@ class encode:
         next_id = format(num, '04x')
         # 变回反序
         return next_id[2:4] + next_id[0:2]
-
     def find_next_available_position(self):
         """
         查找下一个可用的武将位置
@@ -395,7 +402,6 @@ class encode:
         
         # 如果没有找到可用位置，返回None
         return (None, None)
-
     def duplicate_warrior(self, warrior_data,messagebox=None):
         """
         复制武将数据并生成新的唯一ID
@@ -436,7 +442,6 @@ class encode:
         new_warrior['source'] = self.encode_warrior(new_warrior)
         
         return new_warrior
-
     def create_new_warrior(self):
         """
         使用默认武将数据创建一个新的武将
@@ -602,7 +607,7 @@ class encode:
                      
                 warrior_data[field] = value
         if(warrior_data['idx'] in ['bc0b','b90b']):
-            print(warrior_data['surname'],warrior_data['firstname'],warrior_str[474:490])
+            print(warrior_data['surname'],warrior_data['firstname'],warrior_str[460:490])
         skill_str_16=warrior_str[self.skill["positions"][0]:self.skill["positions"][0]+self.skill["positions"][1]]        
         skill_str=self.hex_to_quaternary_战法(skill_str_16) 
         # self.exportFile(warrior_str,warrior_data['idx'])  
@@ -623,8 +628,8 @@ class encode:
         return warrior_data
 
 
-    def decode_bin_file(self, path):
-        with open(path, 'rb') as file:
+    def decode_bin_file(self):
+        with open(self.path, 'rb') as file:
             hex_string = binascii.hexlify(file.read()).decode('utf-8')
         self.warriors = []
         lenth =len(hex_string)/2294
