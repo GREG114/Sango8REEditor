@@ -18,4 +18,15 @@ class wproperty:
             if wproperty['format']=="02d":
                 return f"{random.randint(min, max):02d}"
             if wproperty['format']=="int(str)":
-                return f"{random.randint(min, max)}"
+                return f"{random.randint(min, max)}"  
+    def get_random_name(self):
+        surname=random.choice(surnames)
+        mid = random.choice(mid_names_f)
+        first = random.choice(first_names_f)
+        if random.random() < 0.45:  # 30% 概率只返回后一个字
+            mid=''
+        lastname = mid+first
+        return surname,lastname
+
+    def get_surname(self):
+        return random.choice(surnames)

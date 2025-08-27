@@ -22,7 +22,6 @@ mid_names_f = [
     '风', '铃', '音', '韵', '歌', '谣', '曲', '调', '舞', '影',
     '姿', '容', '貌', '仪', '端', '庄', '静', '娴', '雅', '丽'
 ]  # 180个
-
 first_names_f = [
     '婷', '怡', '悦', '欣', '雯', '梦', '雪', '雨', '云', '晴',
     '霏', '菲', '薇', '茜', '琪', '琳', '璇', '婉', '婧', '颖',
@@ -45,7 +44,6 @@ first_names_f = [
     '端', '庄', '雅', '丽', '华', '芳', '秀', '萍', '梅', '莲',
     '菊', '桂', '珍', '珠', '琼', '瑶', '洁', '淑', '惠', '敏'
 ]  # 180个
-
 surnames = [
     "李", "王", "张", "刘", "陈", "杨", "赵", "黄", "周", "吴",
     "徐", "孙", "胡", "朱", "高", "林", "何", "郭", "马", "罗",
@@ -62,4 +60,149 @@ surnames = [
     "澹台", "公冶", "宗政", "濮阳", "淳于", "单于", "左丘", "东郭",
     "呼延", "归海", "羊舌", "微生", "梁丘", "左丘", "东门", "西门"
 ]
+character={
+    '01':'大胆',
+    '02':'莽撞',
+    '03':'温和',
+    '04':'沉着',
+    '05':'胆小',
+}
+inclination={
+    '01':'消极',
+    '02':'普通',
+    '03':'好战',
+    '04':'积极',
+    '05':'私欲',
+}
+voice={
+    #男
+    '0101':'粗暴',
+    '0202':'贪婪',
+    '0303':'豪杰',
+    '0404':'热情',
+    '0505':'年迈老将',
+    '0606':'勇猛战将',
+    '0707':'寡言',
+    '0808':'年轻',
+    '0909':'青年',
+    '0a0a':'中年',
+    '0b0b':'濡弱',
+    '0c0c':'文雅',
+    '0d0d':'能吏',
+    '0e0e':'策士',
+    '0f0f':'高傲',
+    '1010':'狡猾',
+
+    '0f20':'袁绍',
+    '0717':'关羽',
+    '0e1a':'周瑜',
+    '0c1c':'诸葛亮',
+    '0e19':'曹操',
+    '041b':'孙策',
+    '061e':'赵云',
+    '0118':'张飞',
+    '0d16':'刘备',
+    '021d':'吕布',
+
+ 
+}
+
+voice_women={
+   # 女
+    '1111':'豪爽',
+    '1212':'勇敢',
+    '1313':'普通',
+    '1414':'贤明',
+    '1515':'妖艳',
+    '141f':'貂蝉',
+}
+
+
+desire={
+    '01':'物欲',
+    '02':'普通',
+    '01':'贪婪',
+}
+
+reputation={
+    '01':'武名',
+    '01':'文明',
+    '01':'文武不拘',
+    '01':'恶名',
+    '01':'不介意',
+    '01':'高名',
+}
+
+preference = {
+    "00": {"weapon": 0, "book": 0, "treasure": 0, "drink": 0},
+    "01": {"weapon": 1, "book": 0, "treasure": 0, "drink": 0},
+    "02": {"weapon": 0, "book": 1, "treasure": 0, "drink": 0},
+    "03": {"weapon": 1, "book": 1, "treasure": 0, "drink": 0},
+    "04": {"weapon": 0, "book": 0, "treasure": 1, "drink": 0},
+    "05": {"weapon": 1, "book": 0, "treasure": 1, "drink": 0},
+    "06": {"weapon": 0, "book": 1, "treasure": 1, "drink": 0},
+    "07": {"weapon": 1, "book": 1, "treasure": 1, "drink": 0},
+    "08": {"weapon": 0, "book": 0, "treasure": 0, "drink": 1},
+    "09": {"weapon": 1, "book": 0, "treasure": 0, "drink": 1},
+    "0a": {"weapon": 0, "book": 1, "treasure": 1, "drink": 1},
+    "0b": {"weapon": 1, "book": 1, "treasure": 1, "drink": 1},
+    "0c": {"weapon": 0, "book": 0, "treasure": 1, "drink": 1},
+    "0d": {"weapon": 1, "book": 0, "treasure": 1, "drink": 1},
+    "0e": {"weapon": 0, "book": 1, "treasure": 1, "drink": 1},
+    "0f": {"weapon": 1, "book": 1, "treasure": 1, "drink": 1},
+}
+properties = {
+    "0_4":{"col":"idx","trl":"编号","column_width":60,"unknown":False},
+    "4_8":{"trl":"未知1","unknown":True},#"固定：0a03",
+    "8_16":{"col":"surname","trl":"姓","column_width":60,"unknown":False},#"姓",
+    "16_52":{"trl":"预留1","unknown":True},#"预留1",
+    "52_60":{"col":"firstname","trl":"名","column_width":60,"unknown":False},#"名",
+    "60_96":{"trl":"预留2","unknown":True},#"预留2",
+    "96_104":{"col":"word","trl":"字","column_width":60,"unknown":False},#"字",
+    "104_108":{"trl":"预留3","unknown":True},#"预留3",
+    "108_112":{"col":"headshot","trl":"立绘编号","column_width":60,"unknown":False},#"立绘编号",
+    "112_114":{"col":"sex","trl":"性别","column_width":50,"unknown":False},#"性别",
+    "114_118":{"col":"born","trl":"生年","column_width":50,"unknown":False},#"生年",
+    "118_122":{"col":"died","trl":"卒年","column_width":50,"unknown":False},#"卒年",
+    "122_126":{"col":"relationship","trl":"关系","column_width":60,"unknown":False},#"自己（关系），也可能是竞争",
+    "126_130":{"col":"father","trl":"父亲","column_width":70,"unknown":False},#"父亲",
+    "130_134":{"col":"mother","trl":"母亲","column_width":70,"unknown":False},#"母亲",
+    "134_138":{"col":"spouse1","trl":"配偶1","column_width":70,"unknown":False},#"配偶1",
+    "138_142":{"col":"spouse2","trl":"配偶2","column_width":70,"unknown":False},#"配偶2",
+    "142_146":{"col":"spouse3","trl":"配偶3","column_width":70,"unknown":False},#"配偶3",
+    "146_150":{"col":"brother1","trl":"配偶3","column_width":70,"unknown":False},#"金兰1",
+    "150_154":{"col":"brother2","trl":"配偶3","column_width":70,"unknown":False},#"金兰2",
+    "154_158":{"col":"brother3","trl":"配偶3","column_width":70,"unknown":False},#"金兰3",
+    "158_162":{"col":"like","trl":"意气相投","column_width":70,"unknown":False},#"意气相投",
+    "162_164":{"unknown":True},#"未知1",
+    "164_166":{"col":"ty","trl":"统御","column_width":50,"unknown":False},#"统御",
+    "166_168":{"col":"wl","trl":"武力","column_width":50,"unknown":False},#"武力",
+    "168_170":{"col":"zl","trl":"智力","column_width":50,"unknown":False},#"智力",
+    "170_172":{"col":"zz","trl":"政治","column_width":50,"unknown":False},#"政治",
+    "172_174":{"col":"ml","trl":"魅力","column_width":50,"unknown":False},#"魅力",
+    "174_178":{"col":"voice","trl":"声音","column_width":50,"unknown":False},#"声音",
+    "214_298":{"unknown":True},#"预留，怀疑是关系",
+    "298_316":{"unknown":True},#"战法",
+    "316_318":{"unknown":True},#"未知，怀疑是俩",
+    "318_374":{"unknown":True},#"预留，未知",
+    "374_386":{"unknown":True},#"特技",
+    "386_450":{"unknown":True},#"预留，未知",
+    "450_452":{"col":"desire","trl":"物欲","column_width":50,"unknown":False},#"物欲",
+    "452_454":{"col":"preference","trl":"喜好","column_width":50,"unknown":False},#"喜好",
+    "454_456":{"col":"xg","trl":"性格","column_width":50,"unknown":False},#"性格",
+    "456_458":{"col":"zlqx","trl":"倾向","column_width":50,"unknown":False},#"倾向",
+    "458_460":{"unknown":True},#"未知,都是01",
+    "460_462":{"col":"qc","trl":"奇才","column_width":50,"unknown":False},#"奇才",
+    "460_472":{"unknown":True},#"预留，未知",
+    "472_474":{"unknown":True},#"未知,都是01",
+    "474_476":{"col":"qy","trl":"情义","column_width":50,"unknown":False},#"情义",
+    "476_478":{"col":"zsms","trl":"重视名声","column_width":50,"unknown":False},#"重视名声",
+    "478_482":{"col":"wuming","trl":"武名","column_width":50,"unknown":False},#"武名",
+    "482_486":{"col":"wm","trl":"文名","column_width":50,"unknown":False},#"文名",
+    "486_490":{"col":"em","trl":"恶名","column_width":50,"unknown":False},#"恶名",
+    "490_1500":{"col":"js","trl":"介绍","column_width":200,"unknown":False},#"介绍"
+    
+
+    
+}
 
