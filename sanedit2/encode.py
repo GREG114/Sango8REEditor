@@ -225,14 +225,14 @@ class encode:
                 "positions": [490, 1010],
                 "column_widths": 200,
                 "trl": "介绍"
-            }            
+            }   ,         
             # region 关系
-            , "self": {  # 一个id，通常应该是自己
-                "positions": [122, 4],
-                "column_widths": 60,
-                "trl": "相生自己",
-                "type": "str"
-            },
+            #  "self": {  # 一个id，通常应该是自己
+            #     "positions": [122, 4],
+            #     "column_widths": 60,
+            #     "trl": "相生自己",
+            #     "type": "str"
+            # },
             "father": {
                 "positions": [126, 4],
                 "column_widths": 70,
@@ -377,60 +377,59 @@ class encode:
         firstname = warrior_data.get('firstname', '')
         if firstname == '00000000':
             return modified_hex
-        for field, props in self.properties_savedata.items():
-            if 'positions' in props:
-                start, length = props['positions']
-                v = warrior_data.get(field, '')
-                if field in ['firstname', 'surname', 'word', 'js']:
-                    value = self.encode(v, True)
-                    if field == 'js':
-                        value = value.ljust(1010, '0')
-                        pass
-                elif field in ['born', 'died']:
-                    value = self.format_year(int(warrior_data.get(field, '')))
-                elif field in ['sex']:
-                    if v == '男':
-                        value = '00'
-                    else:
-                        value = '01'
-                elif field == 'headshot':
-                    if len(str(v)) <= 2:
-                        value = format(int(v) + 87, '02x')+'1b'
-                    else:
-                        value = hex(int(v))[2:].zfill(4)
-                elif field in ['ty', 'wl', 'zz', 'zl', 'ml']:
-                    value = f"{int(v):02x}"
-                elif field == 'qy':
-                    value = f"{int(v):02x}"
-                elif field == 'qc':
-                    dict_r = {self.qicai[x]: x for x in self.qicai}
-                    value = dict_r[v]
-                elif field == 'xg':
-                    dict_r = {self.xg[x]: x for x in self.xg}
-                    value = dict_r[v]
-                # 确保value的长度与预期的长度匹配
-                # elif field =='em':
-                #     v=str(v)
-                #     value =  f"{int(v):04x}"
-                #     value=value[2:4]+value[0:2]
-
-                elif field in ['wm', 'wuming', 'em']:
-                    v = str(v)
-                    value = f"{int(v):04x}"
-                    value = value[2:4]+value[0:2]
+        
+        properties_known = {x:properties[x] for x in properties if properties[x]['unknown']==False}
+        for x in properties_known:
+            position = x.split('_')
+            start = int(position[0])
+            end = int(position[1])
+            property= properties_known[x]
+            field = property['col']
+      
+            v = warrior_data.get(field, '')
+            if field in ['firstname', 'surname', 'word', 'js']:
+                value = self.encode(v, True)
+                if field == 'js':
+                    value = value.ljust(1010, '0')
+                    pass
+            elif field in ['born', 'died']:
+                value = self.format_year(int(warrior_data.get(field, '')))
+            elif field in ['sex']:
+                if v == '男':
+                    value = '00'
                 else:
-                    value = warrior_data.get(field, '')
+                    value = '01'
+            elif field == 'headshot':
+                if len(str(v)) <= 2:
+                    value = format(int(v) + 87, '02x')+'1b'
+                else:
+                    value = hex(int(v))[2:].zfill(4)
+            elif field in ['ty', 'wl', 'zz', 'zl', 'ml']:
+                value = f"{int(v):02x}"
+            elif field == 'qy':
+                value = f"{int(v):02x}"
+            elif field == 'qc':
+                dict_r = {self.qicai[x]: x for x in self.qicai}
+                value = dict_r[v]
+            elif field == 'xg':
+                dict_r = {self.xg[x]: x for x in self.xg}
+                value = dict_r[v]
+            # 确保value的长度与预期的长度匹配
+            # elif field =='em':
+            #     v=str(v)
+            #     value =  f"{int(v):04x}"
+            #     value=value[2:4]+value[0:2]
 
-                # if len(value) < length:
-                #     value += '0' * (length - len(value))
-                # elif len(value) > length:
-                #     value = value[:length]
-
-                # 替换修改后的数据
-                modified_hex = modified_hex[:start] + \
-                    value + modified_hex[start+length:]
-                # if(warrior_data['idx']=='bc0b' and field=='wuming'):
-                #     print(warrior_data['surname'],warrior_data['firstname'],modified_hex[474:490])
+            elif field in ['wm', 'wuming', 'em']:
+                v = str(v)
+                value = f"{int(v):04x}"
+                value = value[2:4]+value[0:2]
+            else:
+                value = warrior_data.get(field, '')
+            # 替换修改后的数据
+            modified_hex = modified_hex[:start] + value + modified_hex[end:]
+            # if(warrior_data['idx']=='bc0b' and field=='wuming'):
+            #     print(warrior_data['surname'],warrior_data['firstname'],modified_hex[474:490])
         return modified_hex
 
     def get_next_id(self, current_id):
@@ -669,49 +668,6 @@ class encode:
                 warrior_data[field] = value
         if(warrior_data['idx'] in ['bc0b','b90b']):
             print(warrior_data['surname'],warrior_data['firstname'],warrior_str[460:490])
-        # properties_known = {x:properties[x] for x in properties if properties[x]['unknown']==False}
-        # for x in properties_known:
-        #     position = x.split('_')
-        #     start = int(position[0])
-        #     end = int(position[1])
-        #     property = properties[x]
-        #     field = property['col']
-        #     value_hex = warrior_str[start:end]
-        #     if field in ['firstname', 'surname', 'word', 'js']:
-        #         value_hex = self.introduce_decode(value_hex)
-        #         value = bytes.fromhex(value_hex).decode('utf-16le')
-        #     elif field in ['born', 'died']:
-        #         value = self.parse_year(value_hex)
-        #     elif field in ['sex']:
-        #         if value_hex == '00':
-        #             value = '男'
-        #         else:
-        #             value = '女'
-        #     elif field == 'headshot':
-        #         if '1b' in value_hex:
-        #             warrior_data['headself'] = True
-        #             value = int(value_hex[:2], 16)-87
-        #         else:
-        #             value = int(value_hex, 16)
-        #     elif field in ['ty', 'wl', 'zz', 'zl', 'ml']:
-        #         value = int(value_hex, 16)
-        #     elif field == 'qc':
-        #         value = self.qicai[value_hex]
-        #     elif field == 'qy':
-        #         value = int(value_hex, 16)
-        #     elif field == 'xg':
-        #         value = self.xg[value_hex]
-        #     elif field in ['wuming', 'wm', 'em']:
-        #         value_hex = value_hex[2:4] + \
-        #             value_hex[0:2]  # 从 '07D0' 变为 'D007'
-        #         value = int(value_hex, 16)  # 转为整数，'D007' -> 53255
-        #     else:
-        #         value = value_hex  # 其他字段可能需要不同的处理方式
-            
-        #     warrior_data[field] = value
-
-
-
         skill_str_16 = warrior_str[self.skill["positions"][0]:self.skill["positions"][0]+self.skill["positions"][1]]
         skill_str = self.hex_to_quaternary_战法(skill_str_16)
         # self.exportFile(warrior_str,warrior_data['idx'])
@@ -722,12 +678,65 @@ class encode:
         except Exception as ex:
             pass
         return warrior_data
-
+    def warrior_read_fromstr_dict(self,warrior_str,warrior_data):
+        properties_known = {x:properties[x] for x in properties if properties[x]['unknown']==False}
+        for x in properties_known:
+            position = x.split('_')
+            start = int(position[0])
+            end = int(position[1])
+            property = properties[x]
+            field = property['col']
+            value_hex = warrior_str[start:end]
+            if field == 'firstname' and value_hex=='00000000' :return None
+            if field in ['firstname', 'surname', 'word', 'js']:
+                value_hex = self.introduce_decode(value_hex)
+                value = bytes.fromhex(value_hex).decode('utf-16le')
+            elif field in ['born', 'died']:
+                value = self.parse_year(value_hex)
+            elif field in ['sex']:
+                if value_hex == '00':
+                    value = '男'
+                else:
+                    value = '女'
+            elif field == 'headshot':
+                if '1b' in value_hex:
+                    warrior_data['headself'] = True
+                    value = int(value_hex[:2], 16)-87
+                else:
+                    value = int(value_hex, 16)
+            elif field in ['ty', 'wl', 'zz', 'zl', 'ml']:
+                value = int(value_hex, 16)
+            elif field == 'qc':
+                value = self.qicai[value_hex]
+            elif field == 'qy':
+                value = int(value_hex, 16)
+            elif field == 'xg':
+                value = self.xg[value_hex]
+            elif field in ['wuming', 'wm', 'em']:
+                value_hex = value_hex[2:4] + \
+                    value_hex[0:2]  # 从 '07D0' 变为 'D007'
+                value = int(value_hex, 16)  # 转为整数，'D007' -> 53255
+            else:
+                value = value_hex  # 其他字段可能需要不同的处理方式
+            
+            warrior_data[field] = value
+            skill_str_16 = warrior_str[self.skill["positions"][0]:self.skill["positions"][0]+self.skill["positions"][1]]
+            skill_str = self.hex_to_quaternary_战法(skill_str_16)
+            warrior_data['source'] = warrior_str
+            # self.exportFile(warrior_str,warrior_data['idx'])
+            
+        try:
+            skilldict = self.parse_skills_to_dict(skill_str)
+            warrior_data['战法'] = skilldict
+        except Exception as ex:
+            raise ex
+        
+        return warrior_data
     def warrior_read(self, warrior_start, hex_string):
         warrior_data = {'original_position': warrior_start}
         warrior_data['original_length'] = 2294
         warrior_str = hex_string[warrior_start:warrior_start+2294]
-        warrior_data = self.warrior_read_fromstr(warrior_str, warrior_data)
+        warrior_data = self.warrior_read_fromstr_dict(warrior_str, warrior_data)
         return warrior_data
 
     def decode_bin_file(self):
@@ -742,7 +751,7 @@ class encode:
                 if warrior_data != None:
                     self.warriors.append(warrior_data)
             except Exception as ex:
-                print(ex)
+                print('解码异常',ex)
         return True
 
     def wrap_string(self, s, width=32):
