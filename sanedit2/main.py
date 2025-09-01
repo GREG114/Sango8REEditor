@@ -3,17 +3,27 @@ from tkinter import ttk
 from encode import encode
 import os, binascii,uuid
 from tkinter import font, messagebox
-
-
+from value_dict import *
 import random
-from namePick import get_name,get_surname
 from wproperty import wproperty
+# pyinstaller --onefile --hidden-import=encode main.py
 wp=None
-
 tree=None
 warrior_count_label = None  
 path = os.path.join(os.environ['USERPROFILE'], 'Documents', 'KoeiTecmo', 'SAN8R', 'SAVE_DATA', 'edit_personSC.bin')
 ec = None
+properties_known = {properties[x]['col']:properties[x] for x in properties if properties[x]['unknown']==False }    
+# columns = list(properties_known[x]['col'] for x in properties_known)
+columns=[
+    'idx','surname','firstname','word'
+    ,'headshot','sex','voice','born','died'
+    ,'ty','wl','zl','zz','ml'
+    ,'relationship','father','mother','spouse1','spouse2','spouse3'
+    ,'brother1','brother2','brother3','like'
+    ,'desire','preference','xg','zlqx'
+    ,'qc','qy','zsms','wuming','wm','em'
+    ,'js']
+column_names = list(properties_known[x]['trl'] for x in columns)
 # 初始化编码器
 def init():
     global ec,wp
@@ -40,7 +50,7 @@ def warriorsload(reload):
         tree.delete(item)
     # 重新插入数据
     for warrior in warriors:
-        values = [warrior.get(col, "") for col in list(ec.properties_savedata.keys())]
+        values = [warrior.get(col, "") for col in columns]
         idx = warrior.get("idx", "")
         if not idx:
             print(f"警告：武将缺少有效 idx，跳过插入：{warrior}")
@@ -49,18 +59,13 @@ def warriorsload(reload):
     update_warrior_count()  # 更新武将数量
 # 表格排序方法
 def sort_column(col_name, tree, reverse):
-    # 找到对应的英文列名
-    col = next((k for k, v in ec.properties_savedata.items() if v["trl"] == col_name), None)
-    if not col:
-        return  # 如果找不到对应列，直接返回
     # 获取所有行的数据
     data = [(tree.set(item, col_name), item) for item in tree.get_children()]
     # 尝试将值转换为数字进行排序，失败则按字符串排序
     try:
         data.sort(key=lambda x: float(x[0]), reverse=reverse)
     except ValueError:
-        data.sort(key=lambda x: x[0], reverse=reverse)
-    
+        data.sort(key=lambda x: x[0], reverse=reverse)    
     # 重新排列行
     for index, (_, item) in enumerate(data):
         tree.move(item, "", index)
@@ -81,23 +86,39 @@ def open_batch_edit_window(tree):
         return
     batch_edit_window = tk.Toplevel()
     batch_edit_window.title("批量修改武将属性")
-    batch_edit_window.geometry("400x900")
-
-    columns = list(ec.properties_savedata.keys())
-    column_names = [ec.properties_savedata[col]["trl"] for col in columns]
-    
+    batch_edit_window.geometry("1200x600")    
     entries = {}
+    cols_per_row = 3
     for i, (col, name) in enumerate(zip(columns, column_names)):
         if col == "idx":
-            continue
-        ttk.Label(batch_edit_window, text=f"{name}:").grid(row=i, column=0, padx=5, pady=5, sticky="e")
+            continue# 计算当前标签和输入框的行和列
+        row = (i - 1) // cols_per_row  # 每3个一组，计算行号
+        col_idx = (i - 1) % cols_per_row  # 计算列号（0, 1, 2）
+
+        ttk.Label(batch_edit_window, text=f"{name}:").grid(row=row, column=col_idx*2, padx=5, pady=5, sticky="e")
         if col == 'qc':
-            combo = ttk.Combobox(batch_edit_window, width=30, values=list(ec.qicai.values()))
-            combo.grid(row=i, column=1, padx=5, pady=5)
+            combo = ttk.Combobox(batch_edit_window, width=30, values=list(qicai.values()))
+            combo.grid(row=row, column=col_idx*2+1, padx=5, pady=5)
+            entries[col] = combo
+        elif col == 'desire':
+            combo = ttk.Combobox(batch_edit_window, width=30, values=list(desire.values()))
+            combo.grid(row=row, column=col_idx*2+1, padx=5, pady=5)
+            entries[col] = combo
+        elif col == 'zsms':
+            combo = ttk.Combobox(batch_edit_window, width=30, values=list(reputation.values()))
+            combo.grid(row=row, column=col_idx*2+1, padx=5, pady=5)
+            entries[col] = combo
+        elif col == 'xg':
+            combo = ttk.Combobox(batch_edit_window, width=30, values=list(character.values()))
+            combo.grid(row=row, column=col_idx*2+1, padx=5, pady=5)
+            entries[col] = combo
+        elif col == 'zlqx':
+            combo = ttk.Combobox(batch_edit_window, width=30, values=list(inclination.values()))
+            combo.grid(row=row, column=col_idx*2+1, padx=5, pady=5)
             entries[col] = combo
         else:
             entry = ttk.Entry(batch_edit_window, width=30)
-            entry.grid(row=i, column=1, padx=5, pady=5)
+            entry.grid(row=row, column=col_idx*2+1, padx=5, pady=5)
             entries[col] = entry
 
     def apply_changes():
@@ -118,7 +139,6 @@ def open_batch_edit_window(tree):
                         tree.column(column_names[col_index], width=text_width)
         # messagebox.showinfo("成功", "批量修改已应用")
         batch_edit_window.destroy()
-
     ttk.Button(batch_edit_window, text="应用修改", command=apply_changes).grid(row=len(columns), column=0, columnspan=2, pady=10)
 # 删除武将
 def delete_warrior(tree):
@@ -208,12 +228,10 @@ def save_warrior_skills(warrior, skill_entries, original_skill_hex, start_pos, e
             if not value.isdigit() or int(value) < 0 or int(value) > 3:
                 raise ValueError(f"技能 {skill_name} 的等级必须是0-3之间的数字")
             new_skills[skill_name] = value
-        warrior['技能']=new_skills
-        skills_str_new = ec.dict_to_skill_string(new_skills)
-        skills_hex_new = ec.quaternary_to_hex_战法(skills_str_new)
-        warrior_source = warrior.get('source', '')
-        updated_source = warrior_source[:start_pos] + skills_hex_new + warrior_source[end_pos:]
-        warrior['source'] = updated_source
+        # print('修改前：',warrior['战法'])
+        warrior['战法']=new_skills
+        ec.save_skills(warrior)
+        # print('修改后：',warrior['战法'])
         warriorsload(False)
     except Exception as e:
         messagebox.showerror("错误", f"保存失败: {str(e)}")
@@ -264,6 +282,23 @@ def pic_random(tree):
             continue
         warrior['headshot'] = wp.get_random_value("headshot")
     warriorsload(False)
+
+def skills_random(tree):
+    global warriors
+    selected_items = tree.selection()
+    if not selected_items:
+        messagebox.showwarning("警告", "请先选择要修改属性的武将！")
+        return    
+    for item in selected_items:
+        idx = tree.item(item, "tags")[0]
+        warrior = next((w for w in warriors if w["idx"] == idx), None)
+        if not warrior:
+            messagebox.showerror("错误", f"无法找到ID为{idx}的武将数据")
+            continue       
+        warrior['战法']=ec.random_skills()
+        ec.save_skills(warrior)
+    warriorsload(False)
+
 def properties_random(tree):
     global warriors
     selected_items = tree.selection()
@@ -293,6 +328,8 @@ def properties_random(tree):
         died_year = random.randint(min_died_year, max_died_year)
         warrior['born'] = f"{born_year}"
         warrior['died'] = f"{died_year}"
+        warrior['战法']=ec.random_skills()
+        warrior['qc']=random.choice(qicai_list)
     warriorsload(False)
 
 
@@ -313,17 +350,16 @@ def create_main_window():
     file_menu = tk.Menu(menubar, tearoff=0)
     file_menu.add_command(label="重新加载", command=lambda: warriorsload(True))
     menubar.add_cascade(label="文件", menu=file_menu)
-    root.config(menu=menubar)
-    columns = list(ec.properties_savedata.keys())
-    column_names = [ec.properties_savedata[col]["trl"] for col in columns 
-                    # if not col in ['self']
-                    ]    
+    root.config(menu=menubar)    
+    
     tree = ttk.Treeview(tree_frame, columns=column_names, show="headings")
-    for col, name in zip(columns, column_names):        
+    for col in columns  :
+        property=properties_known[col]
+        name = property['trl']
         tree.heading(name, text=name, command=lambda c=name: sort_column(c, tree, False))
-        width = ec.properties_savedata[col].get("column_widths", 100)
-        tree.column(name, width=width, anchor="center")             
-
+        width = property['column_width']
+        tree.column(name, width=width, anchor="center")     
+      
     v_scrollbar = ttk.Scrollbar(tree_frame, orient="vertical", command=tree.yview)
     h_scrollbar = ttk.Scrollbar(tree_frame, orient="horizontal", command=tree.xview)
     tree.configure(yscrollcommand=v_scrollbar.set, xscrollcommand=h_scrollbar.set)
@@ -342,11 +378,9 @@ def create_main_window():
         col_index = int(col.replace("#", "")) - 1
         col_name = columns[col_index]
         current_value = tree.item(item, "values")[col_index]
-        
         bbox = tree.bbox(item, column=col)
         if not bbox:
-            return
-        
+            return        
         def save_edit(widget, item, col_index, col_name):
             new_value = widget.get().strip()
             if new_value:
@@ -355,18 +389,34 @@ def create_main_window():
                 tree.item(item, values=values)
                 warrior_index = warriors.index(next(w for w in warriors if w["idx"] == tree.item(item, "values")[0]))
                 warriors[warrior_index][col_name] = new_value
-                font_obj = font.nametofont("TkDefaultFont")
-                text_width = font_obj.measure(new_value + "  ")
-                current_width = tree.column(column_names[col_index], "width")
-                if text_width > current_width:
-                    tree.column(column_names[col_index], width=text_width)
+                
             widget.destroy()
-
         if col_name == 'qc':
-            widget = ttk.Combobox(tree, width=15, values=list(ec.qicai.values()))
+            widget = ttk.Combobox(tree, width=15, values=list(qicai.values()))
             widget.insert(0, current_value)
             widget.event_generate("<Button-1>", when="tail")  # 模拟点击展开下拉菜单
             widget.bind("<<ComboboxSelected>>", lambda e: save_edit(widget, item, col_index, col_name))  # 选择即保存
+        elif col_name=='desire':
+            widget = ttk.Combobox(tree, width=15, values=list(desire.values()))
+            widget.insert(0, current_value)
+            widget.event_generate("<Button-1>", when="tail")  # 模拟点击展开下拉菜单
+            widget.bind("<<ComboboxSelected>>", lambda e: save_edit(widget, item, col_index, col_name))  # 选择即保存
+        elif col_name=='zsms':
+            widget = ttk.Combobox(tree, width=15, values=list(reputation.values()))
+            widget.insert(0, current_value)
+            widget.event_generate("<Button-1>", when="tail")  # 模拟点击展开下拉菜单
+            widget.bind("<<ComboboxSelected>>", lambda e: save_edit(widget, item, col_index, col_name))  # 选择即保存     
+        elif col_name=='xg':
+            widget = ttk.Combobox(tree, width=15, values=list(character.values()))
+            widget.insert(0, current_value)
+            widget.event_generate("<Button-1>", when="tail")  # 模拟点击展开下拉菜单
+            widget.bind("<<ComboboxSelected>>", lambda e: save_edit(widget, item, col_index, col_name))  # 选择即保存
+        elif col_name=='zlqx':
+            widget = ttk.Combobox(tree, width=15, values=list(inclination.values()))
+            widget.insert(0, current_value)
+            widget.event_generate("<Button-1>", when="tail")  # 模拟点击展开下拉菜单
+            widget.bind("<<ComboboxSelected>>", lambda e: save_edit(widget, item, col_index, col_name))  # 选择即保存
+     
         else:
             widget = ttk.Entry(tree)
             widget.insert(0, current_value)
@@ -388,6 +438,7 @@ def create_main_window():
     context_menu.add_command(label="复制武将", command=lambda: duplicate_warrior_in_tree(tree))
     context_menu.add_command(label="随机重命名", command=lambda: rename_selected_warriors(tree))
     context_menu.add_command(label="随机修改立绘", command=lambda: pic_random(tree))
+    context_menu.add_command(label="随机修改战法", command=lambda: skills_random(tree))
     context_menu.add_command(label="随机修改属性", command=lambda: properties_random(tree))
     
     # endregion

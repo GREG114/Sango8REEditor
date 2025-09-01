@@ -13,41 +13,6 @@ class encode:
         self.warriors = []
         self.defaultw = '00000a03000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000323232323200ff0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
         self.encoding = 'utf-16le'
-        self.qicai = {
-            '00': '无',
-            '01': '大德',
-            '02': '义心',
-            '03': '万人敌',
-            '04': '一身胆',
-            '05': '锦马超',
-            '06': '老当益壮',
-            '07': '卧龙',
-            '08': '凤雏',
-            '09': '麒麟儿',
-            '0a': '超世之杰',
-            '0b': '王佐',
-            '0c': '不屈不挠',
-            '0d': '狼顾',
-            '0e': '兵贵神速',
-            '0f': '辽来辽来',
-            '10': '金刚不坏',
-            '11': '伪书疑心',
-            '12': '山道强袭',
-            '13': '江东猛虎',
-            '14': '小霸王',
-            '15': '用材',
-            '16': '火神',
-            '17': '冷炎',
-            '18': '刮目',
-            '19': '铃甘宁',
-            '1a': '深谋远虑',
-            '1b': '天下无双',
-            '1c': '闭月羞花',
-            '1d': '名门望族',
-            '1e': '恶逆无道',
-            '65': '怪物',
-            '66': '残兵谍报',
-        }
         self.xg = {
             '01': '大胆',
             '02': '莽撞',
@@ -83,12 +48,12 @@ class encode:
             #     "trl": "喜好",
             #     "type": "str"
             # },
-            # "stunt": {
-            #     "positions": [374, 12],
-            #     "column_widths": 100,
-            #     "trl": "特技",
-            #     "type": "str"
-            # },
+            "stunt": {
+                "positions": [374, 12],
+                "column_widths": 100,
+                "trl": "特技",
+                "type": "str"
+            },
             # "desire": {
             #     "positions": [450, 2],
             #     "column_widths": 60,
@@ -371,6 +336,69 @@ class encode:
             raise ValueError("技能字典必须包含35个技能")
         return ''.join(skills_dict.get(name, '0') for name in self.skill_names)
 
+    #16转4进制，通过长度控制返回值，战技是35，特技是24
+    def hex_to_quaternary(self, hex_string,lenth=24):
+        # 转换十六进制字符串为十进制整数
+        decimal_num = int(hex_string, 16)
+        if decimal_num == 0:
+            # 如果输入是全0，则返回与输入长度相对应的全0四进制字符串
+            return '0' * (len(hex_string) * 2)
+        quaternary = ""
+        while decimal_num > 0:
+            decimal_num, remainder = divmod(decimal_num, 4)
+            quaternary = str(remainder) + quaternary
+        # 确保返回的四进制字符串长度为十六进制输入长度的两倍
+        required_length = len(hex_string) * 2
+        quaternary = quaternary.zfill(required_length)
+
+        if(len(quaternary) % 4 != 0):
+            raise ValueError("长度不是4的倍数")
+        # 每四个字符分组
+        gps = [quaternary[i:i+4] for i in range(0, len(quaternary), 4)]
+        # 每组倒叙
+        rgps = [gp[::-1] for gp in gps]
+        #拼接
+        result = ''.join(rgps)
+        x=len(result)
+        return result[:lenth]
+
+    #4进制转字典，通过长度判定计算逻辑，战技是35，特技是24
+    def parse_quadStr_to_dict(self, ordered_skills):
+        strlength = len(ordered_skills)
+        key_dict=""
+        if strlength==24:
+            key_dict = stunt_names
+        elif strlength==35:
+            key_dict = skill_names
+        else:
+             raise ValueError("输入字符串长度必须为35或者24")
+
+         # 创建一个字典来保存技能和等级
+        skills_dict = {}
+        # 遍历技能名称和对应的等级
+        for i, skill_name in enumerate(key_dict):
+            skills_dict[skill_name] = ordered_skills[i]
+        return skills_dict
+
+
+    def random_skills(self):
+        skills={}
+        for i in skill_names:
+            skills[i]=str(random.randint(0,3))
+        return skills
+    def save_skills(self,warrior):
+        try:
+            start_pos=self.skill["positions"][0]
+            end_pos=start_pos+self.skill["positions"][1]        
+            new_skills=warrior['战法']
+            skills_str_new = self.dict_to_skill_string(new_skills)
+            skills_hex_new = self.quaternary_to_hex_战法(skills_str_new)
+            warrior_source = warrior.get('source', '')
+            updated_source = warrior_source[:start_pos] + skills_hex_new + warrior_source[end_pos:]
+            warrior['source'] = updated_source   
+        except Exception as e:
+            print(f"保存错误详情: {str(e)}")
+
     def encode_warrior(self, warrior_data, original_warrior_hex=''):
         # original_warrior_hex 是读取文件时得到的原始十六进制字符串
         modified_hex = warrior_data['source']
@@ -409,17 +437,20 @@ class encode:
             elif field == 'qy':
                 value = f"{int(v):02x}"
             elif field == 'qc':
-                dict_r = {self.qicai[x]: x for x in self.qicai}
+                dict_r = {qicai[x]: x for x in qicai}
+                value = dict_r[v]
+            elif field =='desire':
+                dict_r={desire[x]:x for x in desire}
+                value = dict_r[v]
+            elif field =='zsms':
+                dict_r={reputation[x]:x for x in reputation}
+                value = dict_r[v]
+            elif field =='zlqx':
+                dict_r={inclination[x]:x for x in inclination}
                 value = dict_r[v]
             elif field == 'xg':
-                dict_r = {self.xg[x]: x for x in self.xg}
+                dict_r = {character[x]: x for x in character}
                 value = dict_r[v]
-            # 确保value的长度与预期的长度匹配
-            # elif field =='em':
-            #     v=str(v)
-            #     value =  f"{int(v):04x}"
-            #     value=value[2:4]+value[0:2]
-
             elif field in ['wm', 'wuming', 'em']:
                 v = str(v)
                 value = f"{int(v):04x}"
@@ -430,6 +461,7 @@ class encode:
             modified_hex = modified_hex[:start] + value + modified_hex[end:]
             # if(warrior_data['idx']=='bc0b' and field=='wuming'):
             #     print(warrior_data['surname'],warrior_data['firstname'],modified_hex[474:490])
+        
         return modified_hex
 
     def get_next_id(self, current_id):
@@ -587,6 +619,7 @@ class encode:
                 elif len(encoded_data) < 2294:
                     encoded_data = encoded_data.ljust(2294, '0')
 
+
                 # 将数据放到正确位置
                 for i, char in enumerate(encoded_data):
                     if position + i < len(file_content):
@@ -625,59 +658,7 @@ class encode:
             print(f"Error: Invalid hex string '{value_hex}' ({e})")
             return value_hex
 
-    def warrior_read_fromstr(self, warrior_str, warrior_data):
-        x = self.properties_savedata["firstname"]['positions'][0]
-        firstname = warrior_str[x:x+8]
-        if firstname == '00000000':
-            return None
-        for field, props in self.properties_savedata.items():
-            if 'positions' in props:
-                start = props['positions'][0]
-                end = start + props['positions'][1]
-                value_hex = warrior_str[start:end]
-                if field in ['firstname', 'surname', 'word', 'js']:
-                    value_hex = self.introduce_decode(value_hex)
-                    value = bytes.fromhex(value_hex).decode('utf-16le')
-                elif field in ['born', 'died']:
-                    value = self.parse_year(value_hex)
-                elif field in ['sex']:
-                    if value_hex == '00':
-                        value = '男'
-                    else:
-                        value = '女'
-                elif field == 'headshot':
-                    if '1b' in value_hex:
-                        warrior_data['headself'] = True
-                        value = int(value_hex[:2], 16)-87
-                    else:
-                        value = int(value_hex, 16)
-                elif field in ['ty', 'wl', 'zz', 'zl', 'ml']:
-                    value = int(value_hex, 16)
-                elif field == 'qc':
-                    value = self.qicai[value_hex]
-                elif field == 'qy':
-                    value = int(value_hex, 16)
-                elif field == 'xg':
-                    value = self.xg[value_hex]
-                elif field in ['wuming', 'wm', 'em']:
-                    value_hex = value_hex[2:4] + \
-                        value_hex[0:2]  # 从 '07D0' 变为 'D007'
-                    value = int(value_hex, 16)  # 转为整数，'D007' -> 53255
-                else:
-                    value = value_hex  # 其他字段可能需要不同的处理方式
-                warrior_data[field] = value
-        if(warrior_data['idx'] in ['bc0b','b90b']):
-            print(warrior_data['surname'],warrior_data['firstname'],warrior_str[460:490])
-        skill_str_16 = warrior_str[self.skill["positions"][0]:self.skill["positions"][0]+self.skill["positions"][1]]
-        skill_str = self.hex_to_quaternary_战法(skill_str_16)
-        # self.exportFile(warrior_str,warrior_data['idx'])
-        warrior_data['source'] = warrior_str
-        try:
-            skilldict = self.parse_skills_to_dict(skill_str)
-            warrior_data['战法'] = skilldict
-        except Exception as ex:
-            pass
-        return warrior_data
+
     def warrior_read_fromstr_dict(self,warrior_str,warrior_data):
         properties_known = {x:properties[x] for x in properties if properties[x]['unknown']==False}
         for x in properties_known:
@@ -707,11 +688,17 @@ class encode:
             elif field in ['ty', 'wl', 'zz', 'zl', 'ml']:
                 value = int(value_hex, 16)
             elif field == 'qc':
-                value = self.qicai[value_hex]
+                value = qicai[value_hex]
+            elif field=='desire':
+                value = desire[value_hex]
+            elif field =='zsms':
+                value = reputation[value_hex]
             elif field == 'qy':
                 value = int(value_hex, 16)
             elif field == 'xg':
-                value = self.xg[value_hex]
+                value = character[value_hex]
+            elif field == 'zlqx':
+                value = inclination[value_hex]
             elif field in ['wuming', 'wm', 'em']:
                 value_hex = value_hex[2:4] + \
                     value_hex[0:2]  # 从 '07D0' 变为 'D007'
@@ -720,15 +707,25 @@ class encode:
                 value = value_hex  # 其他字段可能需要不同的处理方式
             
             warrior_data[field] = value
-            skill_str_16 = warrior_str[self.skill["positions"][0]:self.skill["positions"][0]+self.skill["positions"][1]]
-            skill_str = self.hex_to_quaternary_战法(skill_str_16)
+         
+
             warrior_data['source'] = warrior_str
             # self.exportFile(warrior_str,warrior_data['idx'])
             
         try:
-            skilldict = self.parse_skills_to_dict(skill_str)
+
+
+            skill_str_16 = warrior_str[self.skill["positions"][0]:self.skill["positions"][0]+self.skill["positions"][1]]
+            skill_str_16 = warrior_str[298:316]
+            skill_str = self.hex_to_quaternary(skill_str_16,35)
+            skilldict = self.parse_quadStr_to_dict(skill_str)
             warrior_data['战法'] = skilldict
-        except Exception as ex:
+
+            stunt_16 = warrior_str[374:386]
+            stunt_str = self.hex_to_quaternary(stunt_16,24)
+            stunt_dict = self.parse_quadStr_to_dict(stunt_str)
+            warrior_data['特技'] = stunt_dict
+        except Exception as ex:            
             raise ex
         
         return warrior_data

@@ -30,7 +30,7 @@ class property_operator:
             elif field in ['ty', 'wl', 'zz', 'zl', 'ml']:
                 value = int(value_hex, 16)
             elif field == 'qc':
-                value = self.qicai[value_hex]
+                value = qicai[value_hex]
             elif field == 'qy':
                 value = int(value_hex, 16)
             elif field == 'xg':
