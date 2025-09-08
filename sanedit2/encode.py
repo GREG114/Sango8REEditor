@@ -237,11 +237,13 @@ class encode:
                 "positions": [154, 4],
                 "column_widths": 70,
                 "trl": "金兰3"
-            }, "xt": {
+            },
+            "xt": {
                 "positions": [158, 4],
                 "column_widths": 70,
                 "trl": "意气相投"
-            }, 'relation': {
+            },
+            'relation': {
                 "positions": [178, 36],
                 "column_widths": 250,
                 "trl": "其他关系",
@@ -250,6 +252,8 @@ class encode:
             # endregion
             # endregion
         }
+        self.properties_known = {x:properties[x] for x in properties if properties[x]['unknown']==False}
+        
 
     #技能相关
     def reorder_skills(self, skills_string):
@@ -296,19 +300,14 @@ class encode:
     def quaternary_to_hex_战法(self, quaternary):
         if len(quaternary) != 35:
             raise ValueError("四进制字符串长度必须为35")
-
         # 补齐到36位（在末尾补0）
         quaternary = quaternary + '0'
-
         # 按每4位分组（共9组）
         groups = [quaternary[i:i+4] for i in range(0, len(quaternary), 4)]
-
         # 每组倒序
         reversed_groups = [group[::-1] for group in groups]
-
         # 拼接
         full_quaternary = ''.join(reversed_groups)
-
         # 转换为十六进制
         decimal = 0
         for i, digit in enumerate(full_quaternary[::-1]):
@@ -317,6 +316,21 @@ class encode:
         # 转十六进制，补齐18位
         hex_result = format(decimal, 'x').zfill(18)
         return hex_result[:18]
+
+    def quaternary_to_hex_特技(self,quaternary):
+        q_len = len(quaternary)
+        if len(quaternary) != 24:
+            raise ValueError("四进制字符串长度必须为24")
+        groups = [quaternary[i:i+4] for i in range(0, len(quaternary), 4)]
+        reversed_groups = [group[::-1] for group in groups]
+        full_quaternary = ''.join(reversed_groups)
+        # 转换为十六进制
+        decimal = 0
+        for i, digit in enumerate(full_quaternary[::-1]):
+            decimal += int(digit) * (4 ** i)
+        # 转十六进制，补齐12位
+        hex_result = format(decimal, 'x').zfill(12)
+        return hex_result[:12]
 
     def parse_skills_to_dict(self, ordered_skills):
         # 定义技能名称列表，按照图片从左到右，从上到下的顺序
@@ -332,9 +346,13 @@ class encode:
         return skills_dict
 
     def dict_to_skill_string(self, skills_dict):
-        if len(skills_dict) != 35:
+        if not len(skills_dict) in (35,24):
             raise ValueError("技能字典必须包含35个技能")
-        return ''.join(skills_dict.get(name, '0') for name in self.skill_names)
+        if(len(skills_dict))==35:
+            return ''.join(skills_dict.get(name, '0') for name in skill_names)
+        else:
+            return ''.join(skills_dict.get(name, '0') for name in stunt_names)
+    
 
     #16转4进制，通过长度控制返回值，战技是35，特技是24
     def hex_to_quaternary(self, hex_string,lenth=24):
@@ -361,7 +379,6 @@ class encode:
         result = ''.join(rgps)
         x=len(result)
         return result[:lenth]
-
     #4进制转字典，通过长度判定计算逻辑，战技是35，特技是24
     def parse_quadStr_to_dict(self, ordered_skills):
         strlength = len(ordered_skills)
@@ -379,11 +396,15 @@ class encode:
         for i, skill_name in enumerate(key_dict):
             skills_dict[skill_name] = ordered_skills[i]
         return skills_dict
-
-
     def random_skills(self):
         skills={}
         for i in skill_names:
+            skills[i]=str(random.randint(0,3))
+        return skills
+    
+    def random_stunts(self):
+        skills={}
+        for i in stunt_names:
             skills[i]=str(random.randint(0,3))
         return skills
     def save_skills(self,warrior):
@@ -396,24 +417,38 @@ class encode:
             warrior_source = warrior.get('source', '')
             updated_source = warrior_source[:start_pos] + skills_hex_new + warrior_source[end_pos:]
             warrior['source'] = updated_source   
+            return warrior   
         except Exception as e:
             print(f"保存错误详情: {str(e)}")
+
+    def save_stunts(self,warrior):
+        try:
+            start_pos=374
+            end_pos=386
+            new_skills=warrior['特技']
+            skills_str_new = self.dict_to_skill_string(new_skills)
+            skills_hex_new = self.quaternary_to_hex_特技(skills_str_new)
+            warrior_source = warrior.get('source', '')
+            updated_source = warrior_source[:start_pos] + skills_hex_new + warrior_source[end_pos:]
+            warrior['source'] = updated_source
+            return warrior   
+        except Exception as e:
+            print(f"保存错误详情: {str(e)}")
+
 
     def encode_warrior(self, warrior_data, original_warrior_hex=''):
         # original_warrior_hex 是读取文件时得到的原始十六进制字符串
         modified_hex = warrior_data['source']
         firstname = warrior_data.get('firstname', '')
         if firstname == '00000000':
-            return modified_hex
+            return modified_hex        
         
-        properties_known = {x:properties[x] for x in properties if properties[x]['unknown']==False}
-        for x in properties_known:
+        for x in self.properties_known:
             position = x.split('_')
             start = int(position[0])
             end = int(position[1])
-            property= properties_known[x]
-            field = property['col']
-      
+            property= self.properties_known[x]
+            field = property['col']      
             v = warrior_data.get(field, '')
             if field in ['firstname', 'surname', 'word', 'js']:
                 value = self.encode(v, True)
@@ -704,17 +739,12 @@ class encode:
                     value_hex[0:2]  # 从 '07D0' 变为 'D007'
                 value = int(value_hex, 16)  # 转为整数，'D007' -> 53255
             else:
-                value = value_hex  # 其他字段可能需要不同的处理方式
-            
+                value = value_hex  # 其他字段可能需要不同的处理方式            
             warrior_data[field] = value
-         
-
             warrior_data['source'] = warrior_str
             # self.exportFile(warrior_str,warrior_data['idx'])
             
         try:
-
-
             skill_str_16 = warrior_str[self.skill["positions"][0]:self.skill["positions"][0]+self.skill["positions"][1]]
             skill_str_16 = warrior_str[298:316]
             skill_str = self.hex_to_quaternary(skill_str_16,35)

@@ -17,7 +17,7 @@ properties_known = {properties[x]['col']:properties[x] for x in properties if pr
 columns=[
     'idx','surname','firstname','word'
     ,'headshot','sex','voice','born','died'
-    ,'ty','wl','zl','zz','ml'
+    ,'ty','wl','zl','zz','ml','relation'
     ,'relationship','father','mother','spouse1','spouse2','spouse3'
     ,'brother1','brother2','brother3','like'
     ,'desire','preference','xg','zlqx'
@@ -177,11 +177,9 @@ def show_warrior_skills(tree):
     warrior_source = warrior.get('source', '')
     start_pos = ec.skill["positions"][0]
     end_pos = start_pos + ec.skill["positions"][1]
-    original_skill_hex = warrior_source[start_pos:end_pos]
-    
+    original_skill_hex = warrior_source[start_pos:end_pos]    
     print(f"调试信息 - 武将: {warrior.get('surname', '')}{warrior.get('firstname', '')}")
-    print(f"原始技能十六进制字符串: {original_skill_hex}")  
-      
+    print(f"原始技能十六进制字符串: {original_skill_hex}")        
     skills_window = tk.Toplevel()
     skills_window.title(f"武将技能 - {warrior.get('surname', '')}{warrior.get('firstname', '')}")
     skills_window.geometry("600x500")    
@@ -220,6 +218,9 @@ def show_warrior_skills(tree):
     button_frame.pack(side="bottom", fill="x", padx=10, pady=10)
     save_button = ttk.Button(button_frame, text="保存", command=save_skills)
     save_button.pack(pady=5)
+
+
+
 def save_warrior_skills(warrior, skill_entries, original_skill_hex, start_pos, end_pos):
     try:
         new_skills = {}
@@ -231,7 +232,7 @@ def save_warrior_skills(warrior, skill_entries, original_skill_hex, start_pos, e
         # print('修改前：',warrior['战法'])
         warrior['战法']=new_skills
         ec.save_skills(warrior)
-        # print('修改后：',warrior['战法'])
+        print('修改后：',warrior['战法'])
         warriorsload(False)
     except Exception as e:
         messagebox.showerror("错误", f"保存失败: {str(e)}")
@@ -296,6 +297,13 @@ def skills_random(tree):
             messagebox.showerror("错误", f"无法找到ID为{idx}的武将数据")
             continue       
         warrior['战法']=ec.random_skills()
+        qz=int(warrior['战法']['枪阵']) 
+        yz=int(warrior['战法']['圆阵']) 
+        jy=int(warrior['战法']['箭雨']) 
+        while((int(warrior['wl'])> 90 or warrior['qc']=='天下无双') and 
+              (qz<1 and yz <1 and jy <1)
+              ):
+            warrior['战法']=ec.random_skills()
         ec.save_skills(warrior)
     warriorsload(False)
 
@@ -313,8 +321,9 @@ def properties_random(tree):
             continue        
         # 随机五维属性
         properties = ['ty', 'wl', 'zz', 'ml', 'zl']
+        warrior['ml']=90
         for prop in properties:
-            new_value = f"{random.randint(1, 99)}"
+            new_value = f"{random.randint(40, 60)}"
             warrior[prop] = new_value        
         # 随机立绘
         new_pic = f"{random.randint(1, 35):02d}"
@@ -322,16 +331,127 @@ def properties_random(tree):
         # 随机姓名
         warrior['surname'],warrior['firstname']=wp.get_random_name()
         # 随机生年和死年
-        born_year = random.randint(165, 210)
+        born_year = random.randint(170, 190)
         min_died_year = born_year + 25
         max_died_year = min(born_year + 98, 210+98)
         died_year = random.randint(min_died_year, max_died_year)
         warrior['born'] = f"{born_year}"
         warrior['died'] = f"{died_year}"
         warrior['战法']=ec.random_skills()
-        warrior['qc']=random.choice(qicai_list)
+        warrior=ec.save_skills(warrior)   
+        warrior['特技']=ec.random_stunts()  
+        warrior=ec.save_stunts(warrior)        
+        warrior['qc']=random.choice(list(x for x in qicai_list if not x in ['无','闭月羞花']))
+        if warrior['sex']=='女':
+            vm = list(x for x in voice_women)
+            warrior['voice']=random.choice(vm)
+        warrior['preference'] = random.choice(list(x for x in preference))
+        warrior['特技']['天资']=3
+        warrior = weighted(warrior) 
+
     warriorsload(False)
 
+
+def test(tree):
+    global warriors
+    selected_items = tree.selection()
+    if not selected_items:
+        messagebox.showwarning("警告", "请先选择要修改属性的武将！")
+        return    
+    for item in selected_items:
+        idx = tree.item(item, "tags")[0]
+        warrior = next((w for w in warriors if w["idx"] == idx), None)
+        if not warrior:
+            messagebox.showerror("错误", f"无法找到ID为{idx}的武将数据")
+            continue     
+        warrior['特技']=ec.random_stunts()   
+        warrior=ec.save_stunts(warrior)
+    
+def weighted(warrior):
+    qz=int(warrior['战法']['枪阵']) 
+    yz=int(warrior['战法']['圆阵']) 
+    jy=int(warrior['战法']['箭雨']) 
+    #战法调整，主要匹配枪阵、圆阵、箭雨和对应的兵种特技
+    while True:
+        # 随机生成 0-3 的值
+        qz = random.randint(0, 3)  # 枪阵
+        yz = random.randint(0, 3)  # 圆阵
+        jy = random.randint(0, 3)  # 箭雨
+        # 检查是否满足对应关系
+        max_war = max(qz, yz, jy)  # 前三个的最大值  
+        if(qz==0 and yz==0 and jy==0)  :break   
+        warrior['战法']['枪阵'] = 0
+        warrior['战法']['圆阵'] = 0
+        warrior['战法']['箭雨'] = 0
+        warrior['特技']['步将'] = 0
+        warrior['特技']['骑将'] = 0
+        warrior['特技']['弓将'] = 0
+        if qz== max_war:
+            warrior['战法']['枪阵'] = qz
+            warrior['特技']['步将'] = qz
+        elif yz== max_war:
+            warrior['战法']['圆阵'] = yz
+            warrior['特技']['骑将'] = yz
+        elif jy== max_war:
+            warrior['战法']['箭雨'] = jy
+            warrior['特技']['弓将'] = jy
+        break
+    if int(warrior['zl'])<100:
+        warrior['战法']['落雷'] = 0
+    if warrior['qc'] in ['天下无双','麒麟儿','万人敌','一身胆'
+                         ,'不屈不挠','山道强袭','兵贵神速','金刚不坏'
+                         ,'辽来辽来','江东猛虎','小霸王','铃甘宁'
+                         ,'怪物']:
+        warrior['wl']= str(int(warrior['wl'])+20)
+    if warrior['qc'] in ['卧龙','凤雏','王佐','超世之杰'
+                         ,'狼顾','深谋远虑','残兵谍报','名门望族'
+                         ,'冷炎','火神','伪书疑心','狼顾']:
+        warrior['zl']= str(int(warrior['zl'])+20)
+    #战法加成
+    for i in warrior['战法']:
+        skillvalue = int(warrior['战法'][i])
+        if i in wl_skill and skillvalue >0:
+            for i in range(1,skillvalue+1):
+                warrior['wl']=int(warrior['wl'])+random.randint(0,2)   
+        if i in zl_skill and skillvalue >0:
+            for i in range(1,skillvalue+1):
+                warrior['zl']=int(warrior['zl'])+random.randint(0,2)
+    for i in warrior['特技']:
+        skillvalue = int(warrior['特技'][i])
+        if i in wl_skill and skillvalue >0:
+            for i in range(1,skillvalue+1):
+                warrior['wl']=int(warrior['wl'])+random.randint(0,2)   
+        if i in zl_skill and skillvalue >0:
+            for i in range(1,skillvalue+1):
+                warrior['zl']=int(warrior['zl'])+random.randint(0,2)
+        if i in zz_skill and skillvalue >0:
+            for i in range(1,skillvalue+1):
+                warrior['zz']=int(warrior['zz'])+random.randint(0,2)
+
+
+    wuwei=[int(warrior[x]) for x in ['wl','zz','zl','ml','ty']]
+    wx,wy=calculate_mean_median(wuwei)
+    if wx>60 and wy>50:
+        nicehead = [1,2,4,7,8,9,11,17,19,24,26,23,27,28,29,31,32]
+        warrior['headshot'] = str(random.choice(nicehead))
+        warrior['ml']= str(int(warrior['ml'])+50)
+        warrior['ty']= str(random.randint(70,90)+20)
+
+    return warrior
+
+def calculate_mean_median(arr):
+    # 计算平均数
+    mean = sum(arr) / len(arr)
+    
+    # 计算中位数
+    sorted_arr = sorted(arr)
+    n = len(sorted_arr)
+    if n % 2 == 0:
+        median = (sorted_arr[n//2 - 1] + sorted_arr[n//2]) / 2
+    else:
+        median = sorted_arr[n//2]
+    
+    return mean, median
 
 # endregion
 def create_main_window():
@@ -440,6 +560,7 @@ def create_main_window():
     context_menu.add_command(label="随机修改立绘", command=lambda: pic_random(tree))
     context_menu.add_command(label="随机修改战法", command=lambda: skills_random(tree))
     context_menu.add_command(label="随机修改属性", command=lambda: properties_random(tree))
+    context_menu.add_command(label="调试菜单", command=lambda: test(tree))
     
     # endregion
     # 加载武将数据
