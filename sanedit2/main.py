@@ -331,7 +331,7 @@ def properties_random(tree):
         # 随机姓名
         warrior['surname'],warrior['firstname']=wp.get_random_name()
         # 随机生年和死年
-        born_year = random.randint(170, 190)
+        born_year = random.randint(175, 195)
         min_died_year = born_year + 25
         max_died_year = min(born_year + 98, 210+98)
         died_year = random.randint(min_died_year, max_died_year)
@@ -368,45 +368,7 @@ def test(tree):
         warrior=ec.save_stunts(warrior)
     
 def weighted(warrior):
-    qz=int(warrior['战法']['枪阵']) 
-    yz=int(warrior['战法']['圆阵']) 
-    jy=int(warrior['战法']['箭雨']) 
-    #战法调整，主要匹配枪阵、圆阵、箭雨和对应的兵种特技
-    while True:
-        # 随机生成 0-3 的值
-        qz = random.randint(0, 3)  # 枪阵
-        yz = random.randint(0, 3)  # 圆阵
-        jy = random.randint(0, 3)  # 箭雨
-        # 检查是否满足对应关系
-        max_war = max(qz, yz, jy)  # 前三个的最大值  
-        if(qz==0 and yz==0 and jy==0)  :break   
-        warrior['战法']['枪阵'] = 0
-        warrior['战法']['圆阵'] = 0
-        warrior['战法']['箭雨'] = 0
-        warrior['特技']['步将'] = 0
-        warrior['特技']['骑将'] = 0
-        warrior['特技']['弓将'] = 0
-        if qz== max_war:
-            warrior['战法']['枪阵'] = qz
-            warrior['特技']['步将'] = qz
-        elif yz== max_war:
-            warrior['战法']['圆阵'] = yz
-            warrior['特技']['骑将'] = yz
-        elif jy== max_war:
-            warrior['战法']['箭雨'] = jy
-            warrior['特技']['弓将'] = jy
-        break
-    if int(warrior['zl'])<100:
-        warrior['战法']['落雷'] = 0
-    if warrior['qc'] in ['天下无双','麒麟儿','万人敌','一身胆'
-                         ,'不屈不挠','山道强袭','兵贵神速','金刚不坏'
-                         ,'辽来辽来','江东猛虎','小霸王','铃甘宁'
-                         ,'怪物']:
-        warrior['wl']= str(int(warrior['wl'])+20)
-    if warrior['qc'] in ['卧龙','凤雏','王佐','超世之杰'
-                         ,'狼顾','深谋远虑','残兵谍报','名门望族'
-                         ,'冷炎','火神','伪书疑心','狼顾']:
-        warrior['zl']= str(int(warrior['zl'])+20)
+
     #战法加成
     for i in warrior['战法']:
         skillvalue = int(warrior['战法'][i])
@@ -429,14 +391,33 @@ def weighted(warrior):
                 warrior['zz']=int(warrior['zz'])+random.randint(0,2)
 
 
+
+    if warrior['qc'] in ['天下无双','麒麟儿','万人敌','一身胆'
+                         ,'不屈不挠','山道强袭','兵贵神速','金刚不坏'
+                         ,'辽来辽来','江东猛虎','小霸王','铃甘宁'
+                         ,'怪物']:
+        warrior['wl']= str(int(warrior['wl'])+20)
+        warrior['特技']['骑将']=random.randint(2,3)
+        warrior['特技']['圆阵']=random.randint(1,3)
+
+    if warrior['qc'] in ['卧龙','凤雏','王佐','超世之杰'
+                         ,'狼顾','深谋远虑','残兵谍报','名门望族'
+                         ,'冷炎','火神','伪书疑心','狼顾']:
+        warrior['zl']= str(int(warrior['zl'])+20)
+        warrior['战法']['落雷']=random.randint(1,3)
+        warrior['战法']['奋起']=random.randint(0,1)
+        
+
     wuwei=[int(warrior[x]) for x in ['wl','zz','zl','ml','ty']]
     wx,wy=calculate_mean_median(wuwei)
-    if wx>60 and wy>50:
+    if wx>70 and wy>60:
         nicehead = [1,2,4,7,8,9,11,17,19,24,26,23,27,28,29,31,32]
         warrior['headshot'] = str(random.choice(nicehead))
-        warrior['ml']= str(int(warrior['ml'])+50)
-        warrior['ty']= str(random.randint(70,90)+20)
-
+        warrior['ml']= random.randint(80,99)+20
+        warrior['ty']= random.randint(80,99)+20
+        warrior['wl']= random.randint(80,99)+20    
+        warrior['zl']= random.randint(80,99)+20    
+        warrior['zz']= random.randint(80,99)+20   
     return warrior
 
 def calculate_mean_median(arr):

@@ -4,6 +4,7 @@ class encode:
     def __init__(self):        
         self.encoding = 'utf-16le'
         self.qicai = {
+            '00': '无',
             '01': '大德',
             '02': '义心',
             '03': '万人敌',
